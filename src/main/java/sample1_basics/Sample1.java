@@ -31,7 +31,7 @@ public class Sample1
         tileFactory.setThreadPoolSize(8);
 
         // Set the focus
-        GeoPosition grafing = new GeoPosition(48.34, 11.98);
+        GeoPosition grafing = new GeoPosition(48.35, 11.98);
 
         mapViewer.setZoom(7);
         mapViewer.setAddressLocation(grafing);
