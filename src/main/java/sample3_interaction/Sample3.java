@@ -34,8 +34,8 @@ public class Sample3
     public static void main(String[] args)
     {
         // Create a TileFactoryInfo for OpenStreetMap
-        TileFactoryInfo info = new OSMTileFactoryInfo();
-        //DefaultTileFactory tileFactory = new DefaultTileFactory(info);
+        TileFactoryInfo info = new OSMTileFactoryInfo(); //info muss noch in MyTileFactory implementiert werden
+        //DefaultTileFactory tileFactory = new DefaultTileFactory(info); ->ursprünglicher code, aber http nicht funktionsfähig
         DefaultTileFactory tileFactory = new MyTileFactory();
 
         // Setup local file cache

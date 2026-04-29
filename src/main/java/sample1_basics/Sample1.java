@@ -23,7 +23,8 @@ public class Sample1
         JXMapViewer mapViewer = new JXMapViewer();
 
         // Create a TileFactoryInfo for OpenStreetMap
-        TileFactoryInfo info = new OSMTileFactoryInfo();
+        TileFactoryInfo info = new OSMTileFactoryInfo(); //info muss noch in MyTileFactory implementiert werden
+        //DefaultTileFactory tileFactory = new DefaultTileFactory(info); ->ursprünglicher code, aber http nicht funktionsfähig
         DefaultTileFactory tileFactory = new MyTileFactory();
         mapViewer.setTileFactory(tileFactory);
 
