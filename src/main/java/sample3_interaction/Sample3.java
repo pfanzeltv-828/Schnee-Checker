@@ -99,6 +99,8 @@ public class Sample3
         });
 
         updateWindowTitle(frame, mapViewer);
+
+
     }
 
     protected static void updateWindowTitle(JFrame frame, JXMapViewer mapViewer)
