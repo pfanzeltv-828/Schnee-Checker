@@ -1,6 +1,6 @@
 package sample3_interaction;
 
-import java.io.IOException;
+import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.Scanner;
@@ -24,8 +24,33 @@ public class ElevationPainter {
             throw new RuntimeException(e);
         }
     }
-    public static void main(String[] args){
+
+    public static double getElevation2(double lat, double lon) throws IOException {
+        String urlStr = String.format(
+                "https://api.open-meteo.com/v1/elevation?latitude=%s&longitude=%s",
+                lat, lon
+        );
+
+        URL url = new URL(urlStr);
+        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+        conn.setRequestMethod("GET");
+        conn.setConnectTimeout(5000);
+        conn.setReadTimeout(5000);
+
+        try (BufferedReader reader = new BufferedReader(
+                new InputStreamReader(conn.getInputStream()))) {
+            StringBuilder sb = new StringBuilder();
+            String line;
+            while ((line = reader.readLine()) != null) sb.append(line);
+
+            // Response: {"elevation":[731.0]}
+            String body = sb.toString();
+            String value = body.replaceAll(".*\\[(.*?)\\].*", "$1");
+            return Double.parseDouble(value.trim());
+        }
+    }
+    public static void main(String[] args) throws IOException {
         ElevationPainter p1 = new ElevationPainter();
-        System.out.println(p1.getElevation(47.4138,10.9754));
+        System.out.println(p1.getElevation2(48.348760,11.987477));
     }
 }
