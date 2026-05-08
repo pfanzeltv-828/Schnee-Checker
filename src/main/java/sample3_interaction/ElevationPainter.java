@@ -6,6 +6,41 @@ import java.net.URL;
 import java.util.Scanner;
 
 public class ElevationPainter {
+Painter<JXMapViewer> elevationPainter = new Painter<JXMapViewer>() {
+    @Override
+    public void paint(Graphics2D g, JXMapViewer map, int w, int h) {
+
+        Rectangle bounds = map.getViewportBounds();
+
+        // Raster über den sichtbaren Bereich legen (z.B. alle 10px)
+        int step = 10;
+        for (int px = 0; px < w; px += step) {
+            for (int py = 0; py < h; py += step) {
+
+                // Pixel → GeoPosition
+                Point2D worldPt = new Point2D.Double(
+                    px + bounds.getX(), 
+                    py + bounds.getY()
+                );
+                GeoPosition geo = map.getTileFactory()
+                    .pixelToGeo(worldPt, map.getZoom());
+
+                try {
+                    double elevation = getElevation(geo.getLatitude(), 
+                                                    geo.getLongitude());
+                    if (elevation > 500) {
+                        g.setColor(new Color(255, 0, 0, 80)); // rot, transparent
+                        g.fillRect(px, py, step, step);
+                    }
+                } catch (Exception e) {
+                    // ignore
+                }
+            }
+        }
+    }
+};
+
+mapViewer.setOverlayPainter(elevationPainter);
 
     public double getElevation(double lat, double lon)  {
         try {
