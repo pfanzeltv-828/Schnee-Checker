@@ -6,7 +6,7 @@ import java.net.URL;
 import java.util.Scanner;
 
 public class ElevationPainter {
-
+//hallo julian
     public double getElevation(double lat, double lon)  {
         try {
             String url = "https://api.open-elevation.com/api/v1/lookup?locations=" + lat + "," + lon;
