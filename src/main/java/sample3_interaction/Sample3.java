@@ -63,12 +63,18 @@ public class Sample3
 
         mapViewer.addKeyListener(new PanKeyListener(mapViewer));
 
+        // Add an ElevationPainter
+        ElevationPainter ea = new ElevationPainter();
+        mapViewer.setOverlayPainter(ea);
+
+        /*
         // Add a selection painter
         SelectionAdapter sa = new SelectionAdapter(mapViewer);
         SelectionPainter sp = new SelectionPainter(sa);
         mapViewer.addMouseListener(sa);
         mapViewer.addMouseMotionListener(sa);
         mapViewer.setOverlayPainter(sp);
+         */
 
         // Display the viewer in a JFrame
         final JFrame frame = new JFrame();

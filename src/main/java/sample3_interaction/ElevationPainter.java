@@ -1,12 +1,19 @@
 package sample3_interaction;
 
+import org.jxmapviewer.JXMapViewer;
+import org.jxmapviewer.viewer.GeoPosition;
+
+import javax.swing.*;
+import java.awt.*;
+import java.awt.geom.Point2D;
 import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.Scanner;
 
-public class ElevationPainter {
-Painter<JXMapViewer> elevationPainter = new Painter<JXMapViewer>() {
+public class ElevationPainter implements Painter<Object> {
+
+
     @Override
     public void paint(Graphics2D g, JXMapViewer map, int w, int h) {
 
@@ -28,7 +35,7 @@ Painter<JXMapViewer> elevationPainter = new Painter<JXMapViewer>() {
                 try {
                     double elevation = getElevation(geo.getLatitude(), 
                                                     geo.getLongitude());
-                    if (elevation > 500) {
+                    if (elevation > 1000) {
                         g.setColor(new Color(255, 0, 0, 80)); // rot, transparent
                         g.fillRect(px, py, step, step);
                     }
@@ -38,29 +45,14 @@ Painter<JXMapViewer> elevationPainter = new Painter<JXMapViewer>() {
             }
         }
     }
-};
 
-mapViewer.setOverlayPainter(elevationPainter);
 
-    public double getElevation(double lat, double lon)  {
-        try {
-            String url = "https://api.open-elevation.com/api/v1/lookup?locations=" + lat + "," + lon;
-            HttpURLConnection conn = (HttpURLConnection) new URL(url).openConnection();
-            conn.setRequestProperty("User-Agent", "jxmapviewer-example/1.0");
 
-            Scanner scanner = new Scanner(conn.getInputStream());
-            String response = scanner.useDelimiter("\\A").next();
+    //mapViewer.setOverlayPainter(elevationPainter);
 
-         // JSON parsen - einfach mit String-Suche
-            int idx = response.indexOf("\"elevation\":");
-            String elevStr = response.substring(idx + 12).split("[,}]")[0];
-            return Double.parseDouble(elevStr.trim());
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-    }
 
-    public static double getElevation2(double lat, double lon) throws IOException {
+
+    public static double getElevation(double lat, double lon) throws IOException {
         String urlStr = String.format(
                 "https://api.open-meteo.com/v1/elevation?latitude=%s&longitude=%s",
                 lat, lon
@@ -86,6 +78,7 @@ mapViewer.setOverlayPainter(elevationPainter);
     }
     public static void main(String[] args) throws IOException {
         ElevationPainter p1 = new ElevationPainter();
-        System.out.println(p1.getElevation2(48.348760,11.987477));
+        System.out.println(p1.getElevation(48.348760,11.987477));
     }
+
 }
