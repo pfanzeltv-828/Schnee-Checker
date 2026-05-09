@@ -1,114 +1,78 @@
-
 package sample3_interaction;
 
 import org.jxmapviewer.JXMapViewer;
+import org.jxmapviewer.painter.Painter;
 import org.jxmapviewer.viewer.GeoPosition;
 
 import javax.swing.*;
 import java.awt.*;
 import java.awt.geom.Point2D;
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.util.Scanner;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class ElevationPainter implements Painter<JXMapViewer> {
 
-    private SelectionAdapter adapter;
-    private Map<String, Double> elevationCache = new ConcurrentHashMap<>();
-    private Set<String> pendingRequests = ConcurrentHashMap.newKeySet();
-    private ExecutorService executor = Executors.newFixedThreadPool(3);
+    private final Map<String, Double> elevationCache = new ConcurrentHashMap<>();
+    private final Set<String> pendingRequests = ConcurrentHashMap.newKeySet();
+    private final ExecutorService executor = Executors.newFixedThreadPool(1);
 
     @Override
     public void paint(Graphics2D g, JXMapViewer map, int w, int h) {
+        System.out.println("Paint wird aufgerufen! Cache size: " + elevationCache.size());
         Rectangle bounds = map.getViewportBounds();
-        int step = 20; // größerer Step = weniger Anfragen
+        int step = 100;
 
         for (int px = 0; px < w; px += step) {
             for (int py = 0; py < h; py += step) {
 
                 Point2D worldPt = new Point2D.Double(
-                    px + bounds.getX(),
-                    py + bounds.getY()
+                        px + bounds.getX(),
+                        py + bounds.getY()
                 );
                 GeoPosition geo = map.getTileFactory()
-                    .pixelToGeo(worldPt, map.getZoom());
+                        .pixelToGeo(worldPt, map.getZoom());
 
-                String key = String.format("%.2f,%.2f", 
-                    geo.getLatitude(), geo.getLongitude());
+                String key = String.format("%.1f,%.1f",
+                        geo.getLatitude(), geo.getLongitude());
 
                 if (elevationCache.containsKey(key)) {
-                    // Bereits geladen → direkt zeichnen
-                    if (elevationCache.get(key) > 1000) {
+                    System.out.println("Cache hit: " + elevationCache.get(key)); // ← hinzufügen
+                    if (elevationCache.get(key) > 500) {
+                        System.out.println("Zeichne rot!"); // ← hinzufügen
                         g.setColor(new Color(255, 0, 0, 80));
                         g.fillRect(px, py, step, step);
                     }
                 } else if (!pendingRequests.contains(key)) {
-                    // Noch nicht geladen → im Hintergrund laden
-                    pendingRequests.add(key);
-                    final GeoPosition geoFinal = geo;
+                pendingRequests.add(key);
+                // Gerundete Koordinaten für API verwenden
+                double roundedLat = Math.round(geo.getLatitude() * 10.0) / 10.0;
+                double roundedLon = Math.round(geo.getLongitude() * 10.0) / 10.0;
                     executor.submit(() -> {
                         try {
-                            double elev = getElevation(
-                                geoFinal.getLatitude(), 
-                                geoFinal.getLongitude()
-                            );
+                            Thread.sleep(500); // 500ms warten zwischen Anfragen
+                            double elev = getElevation(roundedLat, roundedLon);
                             elevationCache.put(key, elev);
-                            map.repaint(); // Karte neu zeichnen
+                            SwingUtilities.invokeLater(map::repaint);
                         } catch (Exception e) {
+                            System.out.println("Fehler: " + e.getMessage());
                             pendingRequests.remove(key);
                         }
                     });
-                }
             }
-        }
-    }
-}
-
-
-/*
-public class ElevationPainter implements Painter<Object> {
-
-
-    @Override
-    public void paint(Graphics2D g, JXMapViewer map, int w, int h) {
-
-        Rectangle bounds = map.getViewportBounds();
-
-        // Raster über den sichtbaren Bereich legen (z.B. alle 10px)
-        int step = 10;
-        for (int px = 0; px < w; px += step) {
-            for (int py = 0; py < h; py += step) {
-
-                // Pixel → GeoPosition
-                Point2D worldPt = new Point2D.Double(
-                    px + bounds.getX(), 
-                    py + bounds.getY()
-                );
-                GeoPosition geo = map.getTileFactory()
-                    .pixelToGeo(worldPt, map.getZoom());
-
-                try {
-                    double elevation = getElevation(geo.getLatitude(), 
-                                                    geo.getLongitude());
-                    if (elevation > 1000) {
-                        g.setColor(new Color(255, 0, 0, 80)); // rot, transparent
-                        g.fillRect(px, py, step, step);
-                    }
-                } catch (Exception e) {
-                    // ignore
-                }
             }
         }
     }
 
 
-
-    //mapViewer.setOverlayPainter(elevationPainter);
-
-
-*/
-    public static double getElevation(double lat, double lon) throws IOException {
+    public double getElevation(double lat, double lon) throws IOException {
         String urlStr = String.format(
                 "https://api.open-meteo.com/v1/elevation?latitude=%s&longitude=%s",
                 lat, lon
@@ -128,13 +92,11 @@ public class ElevationPainter implements Painter<Object> {
 
             // Response: {"elevation":[731.0]}
             String body = sb.toString();
-            String value = body.replaceAll(".*\\[(.*?)\\].*", "$1");
+            String value = body.replaceAll(".*\\[(.*?)].*", "$1");
             return Double.parseDouble(value.trim());
         }
     }
-    public static void main(String[] args) throws IOException {
-        ElevationPainter p1 = new ElevationPainter();
-        System.out.println(p1.getElevation(48.348760,11.987477));
-    }
+
+
 
 }

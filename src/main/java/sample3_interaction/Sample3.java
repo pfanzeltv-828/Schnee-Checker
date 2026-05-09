@@ -1,13 +1,9 @@
 package sample3_interaction;
 
 import java.awt.BorderLayout;
-import java.beans.PropertyChangeEvent;
-import java.beans.PropertyChangeListener;
 import java.io.File;
 
-import javax.swing.JFrame;
-import javax.swing.JLabel;
-import javax.swing.WindowConstants;
+import javax.swing.*;
 import javax.swing.event.MouseInputListener;
 
 import org.jxmapviewer.JXMapViewer;
@@ -23,7 +19,7 @@ import org.jxmapviewer.viewer.TileFactoryInfo;
 
 /**
  * A simple sample application that shows
- * a OSM map of Europe
+ * an OSM map of Europe
  * @author Martin Steiger
  */
 public class Sample3
@@ -33,6 +29,8 @@ public class Sample3
      */
     public static void main(String[] args)
     {
+
+
         // Create a TileFactoryInfo for OpenStreetMap
         TileFactoryInfo info = new OSMTileFactoryInfo(); //info muss noch in MyTileFactory implementiert werden
         //DefaultTileFactory tileFactory = new DefaultTileFactory(info); ->ursprünglicher code, aber http nicht funktionsfähig
@@ -46,7 +44,7 @@ public class Sample3
         final JXMapViewer mapViewer = new JXMapViewer();
         mapViewer.setTileFactory(tileFactory);
 
-        GeoPosition frankfurt = new GeoPosition(50.11, 8.68);
+        GeoPosition frankfurt = new GeoPosition(49, 12);
 
         // Set the focus
         mapViewer.setZoom(7);
@@ -67,14 +65,6 @@ public class Sample3
         ElevationPainter ea = new ElevationPainter();
         mapViewer.setOverlayPainter(ea);
 
-        /*
-        // Add a selection painter
-        SelectionAdapter sa = new SelectionAdapter(mapViewer);
-        SelectionPainter sp = new SelectionPainter(sa);
-        mapViewer.addMouseListener(sa);
-        mapViewer.addMouseMotionListener(sa);
-        mapViewer.setOverlayPainter(sp);
-         */
 
         // Display the viewer in a JFrame
         final JFrame frame = new JFrame();
@@ -86,23 +76,13 @@ public class Sample3
         frame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
         frame.setVisible(true);
 
-        mapViewer.addPropertyChangeListener("zoom", new PropertyChangeListener()
-        {
-            @Override
-            public void propertyChange(PropertyChangeEvent evt)
-            {
-                updateWindowTitle(frame, mapViewer);
-            }
-        });
 
-        mapViewer.addPropertyChangeListener("center", new PropertyChangeListener()
-        {
-            @Override
-            public void propertyChange(PropertyChangeEvent evt)
-            {
-                updateWindowTitle(frame, mapViewer);
-            }
-        });
+        Timer timer = new Timer(1000, e -> mapViewer.repaint());
+        timer.start();
+
+        mapViewer.addPropertyChangeListener("zoom", evt -> updateWindowTitle(frame, mapViewer));
+
+        mapViewer.addPropertyChangeListener("center", evt -> updateWindowTitle(frame, mapViewer));
 
         updateWindowTitle(frame, mapViewer);
 

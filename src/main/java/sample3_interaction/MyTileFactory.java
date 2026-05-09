@@ -6,6 +6,7 @@ import org.jxmapviewer.viewer.TileFactoryInfo;
 public class MyTileFactory extends DefaultTileFactory {
 
     public MyTileFactory() {
+
         super(new TileFactoryInfo(
                 1, 17, 17,
                 256,
