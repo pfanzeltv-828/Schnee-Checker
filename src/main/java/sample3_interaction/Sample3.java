@@ -44,10 +44,10 @@ public class Sample3
         final JXMapViewer mapViewer = new JXMapViewer();
         mapViewer.setTileFactory(tileFactory);
 
-        GeoPosition frankfurt = new GeoPosition(49, 12);
+        GeoPosition frankfurt = new GeoPosition(47.69, 11.87);
 
         // Set the focus
-        mapViewer.setZoom(7);
+        mapViewer.setZoom(5);
         mapViewer.setAddressLocation(frankfurt);
 
         // Add interactions
