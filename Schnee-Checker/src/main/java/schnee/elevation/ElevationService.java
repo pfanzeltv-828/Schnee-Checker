@@ -74,14 +74,6 @@ public class ElevationService {
         return results;
     }
 
-    public double getPointsStatus(){
-        if(totalPoints > 0) {
-            return (loadedPoints / totalPoints);
-        }else{
-            return 0.00;
-        }
-    }
-
 
     private Map<String, Double> fetchBatch(List<double[]> points) throws IOException {
         Map<String, Double> results = new LinkedHashMap<>();

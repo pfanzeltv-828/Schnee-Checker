@@ -37,12 +37,10 @@ public class LocalMapServer {
         this.elevationService = elevationService;
     }
 
-    /** Startet die Swing-GUI (ersetzt das frühere server.start()). */
     public void start() {
         SwingUtilities.invokeLater(this::buildAndShowGui);
     }
 
-    /** Kein HTTP-Server mehr – stop() beendet nur den Executor. */
     public void stop() {
         executor.shutdownNow();
     }
