@@ -10,17 +10,18 @@ import schnee.server.LocalMapServer;
 
 public class Main extends Application {
 
-    private LocalMapServer server;
+    LocalMapServer app;
 
     @Override
     public void start(Stage stage) throws Exception {
         ElevationService elevationService = new ElevationService();
         ElevationGridBuilder gridBuilder = new ElevationGridBuilder(elevationService);
-        server = new LocalMapServer(gridBuilder, elevationService);
-        server.start();
+
+        app = new LocalMapServer(gridBuilder, elevationService);
+        app.start();
 
         stage.setOnCloseRequest(e -> {
-            server.stop();
+            app.stop();
             Platform.exit();
         });
     }
