@@ -1,14 +1,16 @@
-package schnee.elevation;
+package schnee.dataservice;
 
 import java.io.IOException;
 import java.util.*;
 
-public class ElevationGridBuilder {
+public class GridBuilder {
 
-    private final ElevationService elevationService;
+    private final DataService elevationService;
+    private final DataService snowDepthService;
 
-    public ElevationGridBuilder(ElevationService elevationService) {
+    public GridBuilder(DataService elevationService, DataService snowDepthService) {
         this.elevationService = elevationService;
+        this.snowDepthService = snowDepthService;
     }
 
     /**
@@ -16,7 +18,7 @@ public class ElevationGridBuilder {
      */
     public String buildGeoJson(double minLat, double maxLat,
                                double minLon, double maxLon,
-                               int threshold, int gridSize) throws IOException {
+                               int data, int gridSize, DataService dataService) throws IOException {
 
         double latStep = (maxLat - minLat) / gridSize;
         double lonStep = (maxLon - minLon) / gridSize;
@@ -31,10 +33,10 @@ public class ElevationGridBuilder {
         }
 
         // Im Hintergrund laden
-        if (!elevationService.isLoading()) {
+        if (!dataService.isLoading()) {
             new Thread(() -> {
                 try {
-                    elevationService.getElevations(points);
+                    dataService.getData(points);
 
                 } catch (Exception e) {
                     System.err.println("Fehler beim Laden: " + e.getMessage());
@@ -43,7 +45,7 @@ public class ElevationGridBuilder {
         }
 
         // Sofort GeoJSON aus Cache bauen
-        return buildFromCache(minLat, maxLat, minLon, maxLon, threshold, gridSize);
+        return buildFromCache(minLat, maxLat, minLon, maxLon, data, gridSize, dataService);
     }
 
     /**
@@ -51,12 +53,12 @@ public class ElevationGridBuilder {
      */
     public String buildFromCache(double minLat, double maxLat,
                                  double minLon, double maxLon,
-                                 int threshold, int gridSize) {
+                                 int data, int gridSize, DataService dataService) {
 
         double latStep = (maxLat - minLat) / gridSize;
         double lonStep = (maxLon - minLon) / gridSize;
 
-        Map<String, Double> cache = elevationService.getCache();
+        Map<String, Double> cache = dataService.getCache();
 
         StringBuilder sb = new StringBuilder();
         sb.append("{\"type\":\"FeatureCollection\",\"features\":[");
@@ -66,10 +68,10 @@ public class ElevationGridBuilder {
             for (int j = 0; j < gridSize; j++) {
                 double lat = minLat + i * latStep + latStep / 2;
                 double lon = minLon + j * lonStep + lonStep / 2;
-                String key = elevationService.makeKey(lat, lon);
+                String key = dataService.makeKey(lat, lon);
 
-                Double elev = cache.get(key);
-                if (elev == null || elev <= threshold) continue;
+                Double inf = cache.get(key);
+                if (inf == null || inf <= data) continue;
 
                 if (!first) sb.append(",");
                 first = false;
@@ -80,7 +82,7 @@ public class ElevationGridBuilder {
                 double e = w + lonStep;
 
                 sb.append("{\"type\":\"Feature\",");
-                sb.append("\"properties\":{\"elevation\":").append((int) Math.round(elev)).append("},");
+                sb.append("\"properties\":{\"elevation\":").append((int) Math.round(inf)).append("},");
                 sb.append("\"geometry\":{\"type\":\"Polygon\",\"coordinates\":[[");
                 sb.append("[").append(w).append(",").append(s).append("],");
                 sb.append("[").append(e).append(",").append(s).append("],");

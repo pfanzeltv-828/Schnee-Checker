@@ -1,7 +1,9 @@
 package schnee.server;
 
-import schnee.elevation.ElevationGridBuilder;
-import schnee.elevation.ElevationService;
+import schnee.dataservice.DataService;
+import schnee.dataservice.GridBuilder;
+import schnee.dataservice.ElevationService;
+import schnee.dataservice.SnowDepthService;
 
 import javax.swing.*;
 import java.awt.*;
@@ -22,8 +24,9 @@ import java.util.concurrent.Executors;
  */
 public class LocalMapServer {
 
-    private final ElevationGridBuilder gridBuilder;
+    private final GridBuilder gridBuilder;
     private final ElevationService     elevationService;
+    private final SnowDepthService     snowDepthService;
 
     private MapPanel     mapPanel;
     private ControlPanel controlPanel;
@@ -31,10 +34,13 @@ public class LocalMapServer {
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
     private volatile boolean isProcessing = false;
 
-    public LocalMapServer(ElevationGridBuilder gridBuilder,
-                          ElevationService elevationService) {
+
+    public LocalMapServer(GridBuilder gridBuilder,
+                          ElevationService elevationService,
+                          SnowDepthService snowDepthService) {
         this.gridBuilder      = gridBuilder;
         this.elevationService = elevationService;
+        this.snowDepthService = snowDepthService;
     }
 
     public void start() {
@@ -57,14 +63,26 @@ public class LocalMapServer {
         frame.setLocationRelativeTo(null);
 
         mapPanel     = new MapPanel();
-        controlPanel = new ControlPanel(mapPanel, v -> loadElevation());
+        controlPanel = new ControlPanel(
+                mapPanel,
+                v -> loadSelectedMode()
+        );
 
         frame.setLayout(new BorderLayout(0, 0));
         frame.add(mapPanel,     BorderLayout.CENTER);
         frame.add(controlPanel, BorderLayout.EAST);
         frame.setVisible(true);
 
-        startStatusPoller();
+
+    }
+
+    private void loadSelectedMode() {
+        if (controlPanel.getMode() == ControlPanel.Mode.ELEVATION) {
+            loadElevation();
+        } else {
+            loadSnowDepth();
+
+        }
     }
 
     // =========================================================================
@@ -92,9 +110,13 @@ public class LocalMapServer {
         executor.submit(() -> {
             try {
                 String geoJson = gridBuilder.buildGeoJson(
-                        minLat, maxLat, minLon, maxLon, threshold, grid);
+                        minLat, maxLat, minLon, maxLon, threshold, grid, elevationService);
 
                 List<double[][]> polygons = GeoJsonParser.parsePolygons(geoJson);
+                System.out.println("Polygon count = " + polygons.size());
+
+
+
                 int count = polygons.size();
 
                 SwingUtilities.invokeLater(() -> {
@@ -116,15 +138,58 @@ public class LocalMapServer {
         });
     }
 
-    // =========================================================================
-    // Status-Anzeige für den Ladefortschritt von ElevationService
-    // =========================================================================
+    private void loadSnowDepth() {
+        if (isProcessing) return;
 
-    private void startStatusPoller() {
+        isProcessing = true;
+        controlPanel.setUpdateEnabled(false);
+
+        int threshold = controlPanel.getThreshold();
+        int grid      = controlPanel.getGridSize();
+
+        double[] bbox = mapPanel.getBoundingBox();
+        double minLat = bbox[0], maxLat = bbox[1];
+        double minLon = bbox[2], maxLon = bbox[3];
+
+        controlPanel.setStatus("Lade Schneedaten...", new Color(107, 197, 255));
+        System.out.printf("Anfrage: bbox=[%.4f,%.4f,%.4f,%.4f] threshold=%dcm grid=%dx%d%n",
+                minLat, maxLat, minLon, maxLon, threshold, grid, grid);
+
+        executor.submit(() -> {
+            try {
+                String geoJson = gridBuilder.buildGeoJson(
+                        minLat, maxLat, minLon, maxLon, threshold, grid, snowDepthService);
+
+                List<double[][]> polygons = GeoJsonParser.parsePolygons(geoJson);
+                int count = polygons.size();
+
+                SwingUtilities.invokeLater(() -> {
+                    mapPanel.setPolygons(polygons);
+                    controlPanel.setStatus(count + " Flächen über " + threshold + " cm Schnee",
+                            new Color(107, 255, 155));
+                    controlPanel.setUpdateEnabled(true);
+                    isProcessing = false;
+                });
+
+            } catch (Exception ex) {
+                SwingUtilities.invokeLater(() -> {
+                    controlPanel.setStatus("Fehler: " + ex.getMessage(), new Color(255, 100, 100));
+                    controlPanel.setUpdateEnabled(true);
+                    isProcessing = false;
+                });
+                System.err.println("Fehler: " + ex.getMessage());
+            }
+        });
+    }
+
+    // =========================================================================
+    // Status-Anzeige für den Ladefortschritt von     // =========================================================================
+
+    private void startStatusPoller(DataService dataService) {
         new Timer(500, e -> {
-            if (elevationService.isLoading()) {
-                long loaded = elevationService.getLoadedPoints();
-                long total  = elevationService.getTotalPoints();
+            if (dataService.isLoading()) {
+                long loaded = dataService.getLoadedPoints();
+                long total  = dataService.getTotalPoints();
                 String msg  = total > 0
                         ? String.format("Lade Punkte: %,d / %,d", loaded, total)
                         : String.format("Lade Punkte: %,d", loaded);

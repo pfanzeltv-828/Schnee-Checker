@@ -6,18 +6,29 @@ import java.awt.*;
 import java.util.function.Consumer;
 
 /**
- * Sidebar mit Slidern (Höhenschwelle, Rasterauflösung, Zoom) und dem
- * "Aktualisieren"-Button.
+ * Sidebar mit Modus-Umschalter (Höhe/Schnee), Slidern (Schwelle,
+ * Rasterauflösung, Zoom) und dem "Aktualisieren"-Button.
  *
  * Liest den initialen Zoom vom übergebenen MapPanel, schreibt Zoom-Änderungen
  * dorthin zurück, kennt aber sonst keine Anwendungslogik. Wenn der Button
  * geklickt wird, ruft ControlPanel lediglich den übergebenen Callback auf –
- * was dabei passiert (Daten laden etc.) entscheidet der Aufrufer.
+ * was dabei passiert (welche Daten geladen werden) entscheidet der Aufrufer,
+ * der über getMode() abfragt, welcher Modus aktuell gewählt ist.
  */
 public class ControlPanel extends JPanel {
 
+    /** Welche Datenart aktuell angezeigt werden soll. */
+    public enum Mode { ELEVATION, SNOW_DEPTH }
+
+    // Slider-Bereiche je Modus: {min, max, default}
+    private static final int[] ELEVATION_RANGE  = {0, 3000, 500};
+    private static final int[] SNOW_DEPTH_RANGE = {0, 200, 20};
+
     private final MapPanel mapPanel;
     private final Consumer<Void> onUpdateRequested;
+
+    private JRadioButton elevationRadio;
+    private JRadioButton snowDepthRadio;
 
     private JSlider thresholdSlider;
     private JSlider gridSlider;
@@ -27,6 +38,8 @@ public class ControlPanel extends JPanel {
     private JLabel  zoomLabel;
     private JLabel  statusLabel;
     private JButton updateBtn;
+
+    private Mode currentMode = Mode.ELEVATION;
 
     /**
      * @param mapPanel          Referenz für Zoom-Initialwert und Synchronisation
@@ -45,11 +58,13 @@ public class ControlPanel extends JPanel {
     }
 
     // =========================================================================
-    // Öffentliche Getter – Aufrufer liest hierüber die aktuellen Slider-Werte
+    // Öffentliche Getter – Aufrufer liest hierüber die aktuellen Werte
     // =========================================================================
 
-    public int getThreshold() { return thresholdSlider.getValue(); }
-    public int getGridSize()  { return gridSlider.getValue(); }
+    /** Aktuell gewählter Modus – bestimmt, welche Lade-Methode der Aufrufer nutzen sollte. */
+    public Mode getMode()     { return currentMode; }
+    public int  getThreshold() { return thresholdSlider.getValue(); }
+    public int  getGridSize()  { return gridSlider.getValue(); }
 
     public void setStatus(String msg, Color color) {
         statusLabel.setText(msg);
@@ -70,24 +85,27 @@ public class ControlPanel extends JPanel {
         setBorder(new EmptyBorder(18, 16, 18, 16));
         setPreferredSize(new Dimension(240, 0));
 
-        JLabel title = new JLabel("⛰ SCHNEE-CHECKER");
+        JLabel title = new JLabel(" SCHNEE-CHECKER");
         title.setForeground(new Color(255, 100, 100));
         title.setFont(new Font("Segoe UI", Font.BOLD, 13));
         title.setAlignmentX(Component.LEFT_ALIGNMENT);
         add(title);
         add(Box.createVerticalStrut(18));
 
-        // --- Höhenschwelle ---
+        // --- Modus-Umschalter ---
+        add(buildModeSwitch());
+        add(Box.createVerticalStrut(18));
+
+        // --- Schwelle (Höhe oder Schnee, je nach Modus) ---
         thresholdLabel = makeLabel("Höhenschwelle: 500 m");
         add(thresholdLabel);
         add(Box.createVerticalStrut(5));
 
-        thresholdSlider = new JSlider(0, 3000, 500);
+        thresholdSlider = new JSlider(ELEVATION_RANGE[0], ELEVATION_RANGE[1], ELEVATION_RANGE[2]);
         thresholdSlider.setBackground(new Color(20, 20, 32));
         thresholdSlider.setForeground(new Color(255, 100, 100));
         styleSlider(thresholdSlider);
-        thresholdSlider.addChangeListener(e ->
-            thresholdLabel.setText("Höhenschwelle: " + thresholdSlider.getValue() + " m"));
+        thresholdSlider.addChangeListener(e -> updateThresholdLabel());
         add(thresholdSlider);
         add(Box.createVerticalStrut(16));
 
@@ -152,6 +170,59 @@ public class ControlPanel extends JPanel {
 
         add(Box.createVerticalGlue());
         add(buildLegend());
+    }
+
+    /** Baut die zwei Radiobuttons für die Modus-Auswahl (Höhe / Schnee). */
+    private JPanel buildModeSwitch() {
+        JPanel panel = new JPanel();
+        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+        panel.setBackground(new Color(20, 20, 32));
+        panel.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        elevationRadio = new JRadioButton(" Höhe", true);
+        snowDepthRadio = new JRadioButton(" Schnee", false);
+
+        for (JRadioButton rb : new JRadioButton[]{elevationRadio, snowDepthRadio}) {
+            rb.setBackground(new Color(20, 20, 32));
+            rb.setForeground(new Color(220, 220, 235));
+            rb.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+            rb.setFocusPainted(false);
+            rb.setAlignmentX(Component.LEFT_ALIGNMENT);
+            rb.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        }
+
+        ButtonGroup group = new ButtonGroup();
+        group.add(elevationRadio);
+        group.add(snowDepthRadio);
+
+        elevationRadio.addActionListener(e -> switchMode(Mode.ELEVATION));
+        snowDepthRadio.addActionListener(e -> switchMode(Mode.SNOW_DEPTH));
+
+        panel.add(elevationRadio);
+        panel.add(snowDepthRadio);
+        return panel;
+    }
+
+    /** Wechselt den Modus, passt den Slider-Bereich an und aktualisiert das Label. */
+    private void switchMode(Mode mode) {
+        if (mode == currentMode) return;
+        currentMode = mode;
+
+        int[] range = (mode == Mode.ELEVATION) ? ELEVATION_RANGE : SNOW_DEPTH_RANGE;
+        thresholdSlider.setMinimum(range[0]);
+        thresholdSlider.setMaximum(range[1]);
+        thresholdSlider.setValue(range[2]);
+        updateThresholdLabel();
+    }
+
+    /** Aktualisiert die Schwellen-Beschriftung passend zum aktuellen Modus (m vs. cm). */
+    private void updateThresholdLabel() {
+        int value = thresholdSlider.getValue();
+        if (currentMode == Mode.ELEVATION) {
+            thresholdLabel.setText("Höhenschwelle: " + value + " m");
+        } else {
+            thresholdLabel.setText("Schneeschwelle: " + value + " cm");
+        }
     }
 
     private void styleSlider(JSlider s) {

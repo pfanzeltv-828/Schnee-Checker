@@ -4,8 +4,9 @@ import javafx.application.Application;
 import javafx.application.Platform;
 
 import javafx.stage.Stage;
-import schnee.elevation.ElevationGridBuilder;
-import schnee.elevation.ElevationService;
+import schnee.dataservice.ElevationService;
+import schnee.dataservice.GridBuilder;
+import schnee.dataservice.SnowDepthService;
 import schnee.server.LocalMapServer;
 
 public class Main extends Application {
@@ -15,9 +16,10 @@ public class Main extends Application {
     @Override
     public void start(Stage stage) throws Exception {
         ElevationService elevationService = new ElevationService();
-        ElevationGridBuilder gridBuilder = new ElevationGridBuilder(elevationService);
+        SnowDepthService snowDepthService = new SnowDepthService();
+        GridBuilder gridBuilder = new GridBuilder(elevationService,snowDepthService);
 
-        app = new LocalMapServer(gridBuilder, elevationService);
+        app = new LocalMapServer(gridBuilder, elevationService, snowDepthService);
         app.start();
 
         stage.setOnCloseRequest(e -> {

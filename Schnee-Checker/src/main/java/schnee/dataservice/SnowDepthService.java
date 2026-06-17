@@ -1,13 +1,21 @@
-package schnee.elevation;
+package schnee.dataservice;
 
-import java.io.*;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
+
 import java.net.URL;
+import java.time.*;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 
-public class ElevationService {
+public class SnowDepthService extends DataService{
 
-    private static final String API_URL = "https://api.open-meteo.com/v1/elevation";
+    private static final String API_URL = "https://api.open-meteo.com/v1/forecast";
 
     private final Map<String, Double> cache = Collections.synchronizedMap(
             new LinkedHashMap<>() {
@@ -23,7 +31,7 @@ public class ElevationService {
     private volatile int totalPoints = 0;
     private volatile int loadedPoints = 0;
 
-    public Map<String, Double> getElevations(List<double[]> points) throws IOException {
+    public Map<String, Double> getData(List<double[]> points) throws IOException {
         Map<String, Double> results = new LinkedHashMap<>();
 
         List<double[]> toFetch = new ArrayList<>();
@@ -74,31 +82,85 @@ public class ElevationService {
         return results;
     }
 
+    private final ObjectMapper mapper = new ObjectMapper();
 
-    private Map<String, Double> fetchBatch(List<double[]> points) throws IOException {
+    private Map<String, Double> fetchBatch(List<double[]> points)
+            throws IOException {
+
         Map<String, Double> results = new LinkedHashMap<>();
 
         StringBuilder lats = new StringBuilder();
         StringBuilder lons = new StringBuilder();
+
         for (double[] pt : points) {
-            if (lats.length() > 0) { lats.append(","); lons.append(","); }
+
+            if (lats.length() > 0) {
+                lats.append(",");
+                lons.append(",");
+            }
+
             lats.append(String.format(Locale.US, "%.4f", pt[0]));
             lons.append(String.format(Locale.US, "%.4f", pt[1]));
         }
 
-        String urlStr = API_URL + "?latitude=" + lats + "&longitude=" + lons;
-        String response = httpGet(urlStr);
+        String url =
+                API_URL
+                        + "?latitude=" + lats
+                        + "&longitude=" + lons
+                        + "&hourly=snow_depth"
+                        + "&start_date=2026-06-17"
+                        + "&end_date=2026-06-17";
 
-        String valuesStr = response.replaceAll(".*\\[(.*)\\].*", "$1");
-        String[] values = valuesStr.split(",");
+        String response = httpGet(url);
 
-        for (int i = 0; i < values.length && i < points.size(); i++) {
-            double elev = Double.parseDouble(values[i].trim());
-            String key = makeKey(points.get(i)[0], points.get(i)[1]);
-            cache.put(key, elev);
-            results.put(key, elev);
+        String currentHourKey =
+                LocalDateTime.now()
+                        .withMinute(0)
+                        .withSecond(0)
+                        .withNano(0)
+                        .format(
+                                DateTimeFormatter.ofPattern(
+                                        "yyyy-MM-dd'T'HH:mm"
+                                )
+                        );
+
+        JsonNode root = mapper.readTree(response);
+
+        for (int i = 0; i < root.size() && i < points.size(); i++) {
+
+            JsonNode hourly =
+                    root.get(i).get("hourly");
+
+            JsonNode times =
+                    hourly.get("time");
+
+            JsonNode snow =
+                    hourly.get("snow_depth");
+
+            for (int j = 0; j < times.size(); j++) {
+
+                if (currentHourKey.equals(times.get(j).asText())) {
+
+                    double value =
+                            snow.get(j).asDouble() * 100;
+
+                    double[] pt =
+                            points.get(i);
+
+                    String key =
+                            makeKey(
+                                    pt[0],
+                                    pt[1]
+                            );
+
+                    cache.put(key, value);
+                    results.put(key, value);
+
+                    break;
+                }
+            }
         }
-
+System.out.println(results);
         return results;
     }
 

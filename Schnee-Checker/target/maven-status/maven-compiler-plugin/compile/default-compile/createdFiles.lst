@@ -1,5 +1,9 @@
+schnee\elevation\DataService.class
+schnee\elevation\SnowDepthService$1.class
 schnee\server\ControlPanel.class
 schnee\server\MapPanel.class
 schnee\server\MapPanel$1.class
 schnee\server\GeoJsonParser.class
 schnee\server\MapPanel$2.class
+schnee\server\ControlPanel$Mode.class
+schnee\elevation\SnowDepthService.class
