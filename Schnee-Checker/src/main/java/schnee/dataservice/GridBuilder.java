@@ -70,8 +70,8 @@ public class GridBuilder {
                 double lon = minLon + j * lonStep + lonStep / 2;
                 String key = dataService.makeKey(lat, lon);
 
-                Double inf = cache.get(key);
-                if (inf == null || inf <= data) continue;
+                Double value = cache.get(key);
+                if (value == null || value <= data) continue;
 
                 if (!first) sb.append(",");
                 first = false;
@@ -81,15 +81,16 @@ public class GridBuilder {
                 double w = minLon + j * lonStep;
                 double e = w + lonStep;
 
-                sb.append("{\"type\":\"Feature\",");
-                sb.append("\"properties\":{\"elevation\":").append((int) Math.round(inf)).append("},");
-                sb.append("\"geometry\":{\"type\":\"Polygon\",\"coordinates\":[[");
-                sb.append("[").append(w).append(",").append(s).append("],");
-                sb.append("[").append(e).append(",").append(s).append("],");
-                sb.append("[").append(e).append(",").append(n).append("],");
-                sb.append("[").append(w).append(",").append(n).append("],");
-                sb.append("[").append(w).append(",").append(s).append("]");
-                sb.append("]]}}");
+                sb.append("{\"type\":\"Feature\",\"geometry\":{\"type\":\"Polygon\",\"coordinates\":[[")
+                        .append("[").append(w).append(",").append(s).append("],")
+                        .append("[").append(e).append(",").append(s).append("],")
+                        .append("[").append(e).append(",").append(n).append("],")
+                        .append("[").append(w).append(",").append(n).append("],")
+                        .append("[").append(w).append(",").append(s).append("]")
+                        .append("]]},")
+                        // --- NEU: Wert mit ins GeoJSON schreiben ---
+                        .append("\"properties\":{\"value\":").append(value).append("}")
+                        .append("}");
             }
         }
 

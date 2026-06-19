@@ -29,7 +29,10 @@ public class MapPanel extends JPanel {
     private double centerLon = 11.5;
     private int    zoom      = 9;
 
-    private List<double[][]> polygons = new ArrayList<>();
+    private List<LocalMapServer.PolygonFeature> polygons = new ArrayList<>();
+    private double colorScaleMin = 0;
+    private double colorScaleMax = 200;
+    private boolean useColorGradient = false;
 
     // Kachel-Cache
     private final Map<String, Image> tileCache = new LinkedHashMap<>(256, 0.75f, true) {
@@ -91,7 +94,13 @@ public class MapPanel extends JPanel {
         repaint();
     }
 
-    public void setPolygons(List<double[][]> p) { this.polygons = p; repaint(); }
+    public void setPolygons(List<LocalMapServer.PolygonFeature> p, double min, double max, boolean useColorGradient) {
+        this.polygons      = p;
+        this.colorScaleMin = min;
+        this.colorScaleMax = max;
+        this.useColorGradient  = useColorGradient;
+        repaint();
+    }
 
     public int    getZoom()      { return zoom; }
     public double getCenterLat() { return centerLat; }
@@ -207,27 +216,45 @@ public class MapPanel extends JPanel {
 
         double xTileCenter = lonToTileX(centerLon, zoom);
         double yTileCenter = latToTileY(centerLat, zoom);
-
         g2.setStroke(new BasicStroke(0.8f));
-        Color fill   = new Color(220, 50, 50, 115);
-        Color border = new Color(220, 50, 50, 200);
 
-        for (double[][] polygon : polygons) {
+        Color fixedFill   = new Color(220, 50, 50, 115); // feste rote Farbe für Elevation
+        Color fixedBorder = new Color(220, 50, 50, 200);
+
+        for (LocalMapServer.PolygonFeature feature : polygons) {
+            double[][] polygon = feature.points();
             if (polygon.length < 3) continue;
+
+            Color fill   = useColorGradient ? valueToColor(feature.value()) : fixedFill;
+            Color border = useColorGradient ? fill.darker()                  : fixedBorder;
+
             Path2D.Double path = new Path2D.Double();
             boolean first = true;
             for (double[] pt : polygon) {
                 double tx = lonToTileX(pt[1], zoom);
                 double ty = latToTileY(pt[0], zoom);
-                int px    = (int) (w / 2.0 + (tx - xTileCenter) * 256);
-                int py    = (int) (h / 2.0 + (ty - yTileCenter) * 256);
+                int px = (int) (w / 2.0 + (tx - xTileCenter) * 256);
+                int py = (int) (h / 2.0 + (ty - yTileCenter) * 256);
                 if (first) { path.moveTo(px, py); first = false; }
                 else         path.lineTo(px, py);
             }
             path.closePath();
-            g2.setColor(fill);   g2.fill(path);
-            g2.setColor(border); g2.draw(path);
+            g2.setColor(fill);
+            g2.fill(path);
+            g2.setColor(fill.darker());
+            g2.draw(path);
         }
+    }
+
+    private Color valueToColor(double value) {
+        double range = colorScaleMax - colorScaleMin;
+        double t = (range <= 0) ? 0 : (value - colorScaleMin) / range;
+        t = Math.max(0.0, Math.min(1.0, t));
+
+        int r = (int) (200 + t * (10  - 200));
+        int g = (int) (230 + t * (40  - 230));
+        int b = (int) (255 + t * (130 - 255));
+        return new Color(r, g, b, 170);
     }
 
     // =========================================================================

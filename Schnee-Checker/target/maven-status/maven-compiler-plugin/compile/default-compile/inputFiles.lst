@@ -1,9 +1,8 @@
-C:\Users\User\Desktop\Schnee-Checker\Schnee-Checker\src\main\java\schnee\elevation\DataService.java
-C:\Users\User\Desktop\Schnee-Checker\Schnee-Checker\src\main\java\schnee\elevation\ElevationGridBuilder.java
-C:\Users\User\Desktop\Schnee-Checker\Schnee-Checker\src\main\java\schnee\elevation\ElevationService.java
-C:\Users\User\Desktop\Schnee-Checker\Schnee-Checker\src\main\java\schnee\elevation\SnowDepthService.java
+C:\Users\User\Desktop\Schnee-Checker\Schnee-Checker\src\main\java\schnee\dataservice\DataService.java
+C:\Users\User\Desktop\Schnee-Checker\Schnee-Checker\src\main\java\schnee\dataservice\ElevationService.java
+C:\Users\User\Desktop\Schnee-Checker\Schnee-Checker\src\main\java\schnee\dataservice\GridBuilder.java
+C:\Users\User\Desktop\Schnee-Checker\Schnee-Checker\src\main\java\schnee\dataservice\SnowDepthService.java
 C:\Users\User\Desktop\Schnee-Checker\Schnee-Checker\src\main\java\schnee\Main.java
 C:\Users\User\Desktop\Schnee-Checker\Schnee-Checker\src\main\java\schnee\server\ControlPanel.java
-C:\Users\User\Desktop\Schnee-Checker\Schnee-Checker\src\main\java\schnee\server\GeoJsonParser.java
 C:\Users\User\Desktop\Schnee-Checker\Schnee-Checker\src\main\java\schnee\server\LocalMapServer.java
 C:\Users\User\Desktop\Schnee-Checker\Schnee-Checker\src\main\java\schnee\server\MapPanel.java

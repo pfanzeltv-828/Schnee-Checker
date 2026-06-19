@@ -103,16 +103,6 @@ public class SnowDepthService extends DataService{
             lons.append(String.format(Locale.US, "%.4f", pt[1]));
         }
 
-        String url =
-                API_URL
-                        + "?latitude=" + lats
-                        + "&longitude=" + lons
-                        + "&hourly=snow_depth"
-                        + "&start_date=2026-06-17"
-                        + "&end_date=2026-06-17";
-
-        String response = httpGet(url);
-
         String currentHourKey =
                 LocalDateTime.now()
                         .withMinute(0)
@@ -123,6 +113,18 @@ public class SnowDepthService extends DataService{
                                         "yyyy-MM-dd'T'HH:mm"
                                 )
                         );
+
+        String currentDayKey = currentHourKey.substring(0,currentHourKey.length()-6);
+
+        String url =
+                API_URL
+                        + "?latitude=" + lats
+                        + "&longitude=" + lons
+                        + "&hourly=snow_depth"
+                        + "&start_date=" + currentDayKey
+                        + "&end_date=" + currentDayKey;
+
+        String response = httpGet(url);
 
         JsonNode root = mapper.readTree(response);
 
@@ -168,7 +170,7 @@ System.out.println(results);
         URL url = new URL(urlStr);
         HttpURLConnection conn = (HttpURLConnection) url.openConnection();
         conn.setRequestMethod("GET");
-        conn.setRequestProperty("User-Agent", "SchneeChecker/3.0");
+        conn.setRequestProperty("User-Agent", "SchneeChecker");
         conn.setConnectTimeout(8000);
         conn.setReadTimeout(8000);
 

@@ -1,5 +1,7 @@
 package schnee.server;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import schnee.dataservice.DataService;
 import schnee.dataservice.GridBuilder;
 import schnee.dataservice.ElevationService;
@@ -7,6 +9,7 @@ import schnee.dataservice.SnowDepthService;
 
 import javax.swing.*;
 import java.awt.*;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -73,7 +76,7 @@ public class LocalMapServer {
         frame.add(controlPanel, BorderLayout.EAST);
         frame.setVisible(true);
 
-
+        startStatusPoller(getSelectedService());
     }
 
     private void loadSelectedMode() {
@@ -82,6 +85,14 @@ public class LocalMapServer {
         } else {
             loadSnowDepth();
 
+        }
+    }
+
+    private DataService getSelectedService() {
+        if (controlPanel.getMode() == ControlPanel.Mode.ELEVATION) {
+            return elevationService;
+        } else {
+            return snowDepthService;
         }
     }
 
@@ -112,15 +123,12 @@ public class LocalMapServer {
                 String geoJson = gridBuilder.buildGeoJson(
                         minLat, maxLat, minLon, maxLon, threshold, grid, elevationService);
 
-                List<double[][]> polygons = GeoJsonParser.parsePolygons(geoJson);
-                System.out.println("Polygon count = " + polygons.size());
-
-
+                List<PolygonFeature> polygons = parsePolygons(geoJson);
 
                 int count = polygons.size();
 
                 SwingUtilities.invokeLater(() -> {
-                    mapPanel.setPolygons(polygons);
+                    mapPanel.setPolygons(polygons, threshold, 5000, false);
                     controlPanel.setStatus(count + " Flächen über " + threshold + " m",
                                             new Color(107, 255, 155));
                     controlPanel.setUpdateEnabled(true);
@@ -160,11 +168,11 @@ public class LocalMapServer {
                 String geoJson = gridBuilder.buildGeoJson(
                         minLat, maxLat, minLon, maxLon, threshold, grid, snowDepthService);
 
-                List<double[][]> polygons = GeoJsonParser.parsePolygons(geoJson);
+                List<PolygonFeature> polygons = parsePolygons(geoJson);
                 int count = polygons.size();
 
                 SwingUtilities.invokeLater(() -> {
-                    mapPanel.setPolygons(polygons);
+                    mapPanel.setPolygons(polygons, threshold, 200, true);
                     controlPanel.setStatus(count + " Flächen über " + threshold + " cm Schnee",
                             new Color(107, 255, 155));
                     controlPanel.setUpdateEnabled(true);
@@ -182,8 +190,42 @@ public class LocalMapServer {
         });
     }
 
+    public record PolygonFeature(double[][] points, double value) {}
+
+    private static final ObjectMapper MAPPER = new ObjectMapper();
+
+    public static List<PolygonFeature> parsePolygons(String geoJson) throws Exception {
+        List<PolygonFeature> result = new ArrayList<>();
+
+        JsonNode root = MAPPER.readTree(geoJson);
+        JsonNode features = root.path("features");
+
+        for (JsonNode feature : features) {
+            // GeoJSON liefert Koordinaten als [lon, lat] – pro Polygon ein Ring
+            // mit beliebig vielen Punkten: [[[lon,lat], [lon,lat], ...]]
+            JsonNode ring = feature.path("geometry").path("coordinates").get(0);
+            if (ring == null) continue;
+
+            double value = feature.path("properties").path("value").asDouble();
+
+            List<double[]> points = new ArrayList<>();
+            for (JsonNode point : ring) {
+                double lon = point.get(0).asDouble();
+                double lat = point.get(1).asDouble();
+                points.add(new double[]{lat, lon});
+            }
+
+            if (!points.isEmpty()) {
+                result.add(new PolygonFeature(points.toArray(new double[0][]), value));
+            }
+        }
+
+        return result;
+    }
+
     // =========================================================================
-    // Status-Anzeige für den Ladefortschritt von     // =========================================================================
+    // Status-Anzeige für den Ladefortschritt von
+    // =========================================================================
 
     private void startStatusPoller(DataService dataService) {
         new Timer(500, e -> {

@@ -21,8 +21,8 @@ public class ControlPanel extends JPanel {
     public enum Mode { ELEVATION, SNOW_DEPTH }
 
     // Slider-Bereiche je Modus: {min, max, default}
-    private static final int[] ELEVATION_RANGE  = {0, 3000, 500};
-    private static final int[] SNOW_DEPTH_RANGE = {0, 200, 20};
+    private static final int[] ELEVATION_RANGE  = {0, 5000, 500};
+    private static final int[] SNOW_DEPTH_RANGE = {1, 200, 20};
 
     private final MapPanel mapPanel;
     private final Consumer<Void> onUpdateRequested;

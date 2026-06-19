@@ -1,5 +1,8 @@
 package schnee.dataservice;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -74,6 +77,7 @@ public class ElevationService extends DataService {
         return results;
     }
 
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private Map<String, Double> fetchBatch(List<double[]> points) throws IOException {
         Map<String, Double> results = new LinkedHashMap<>();
@@ -89,16 +93,16 @@ public class ElevationService extends DataService {
         String urlStr = API_URL + "?latitude=" + lats + "&longitude=" + lons;
         String response = httpGet(urlStr);
 
-        String valuesStr = response.replaceAll(".*\\[(.*)\\].*", "$1");
-        String[] values = valuesStr.split(",");
+        JsonNode root = MAPPER.readTree(response);
+        JsonNode elevationArray = root.path("elevation");
 
-        for (int i = 0; i < values.length && i < points.size(); i++) {
-            double elev = Double.parseDouble(values[i].trim());
+        for (int i = 0; i < elevationArray.size() && i < points.size(); i++) {
+            double elev = elevationArray.get(i).asDouble();
             String key = makeKey(points.get(i)[0], points.get(i)[1]);
             cache.put(key, elev);
             results.put(key, elev);
         }
-        System.out.println(results);
+
         return results;
     }
 
@@ -106,7 +110,7 @@ public class ElevationService extends DataService {
         URL url = new URL(urlStr);
         HttpURLConnection conn = (HttpURLConnection) url.openConnection();
         conn.setRequestMethod("GET");
-        conn.setRequestProperty("User-Agent", "SchneeChecker/3.0");
+        conn.setRequestProperty("User-Agent", "SchneeChecker");
         conn.setConnectTimeout(8000);
         conn.setReadTimeout(8000);
 
