@@ -32,17 +32,7 @@ public class GridBuilder {
             }
         }
 
-        // Im Hintergrund laden
-        if (!dataService.isLoading()) {
-            new Thread(() -> {
-                try {
-                    dataService.getData(points);
-
-                } catch (Exception e) {
-                    System.err.println("Fehler beim Laden: " + e.getMessage());
-                }
-            }).start();
-        }
+            dataService.getData(points);
 
         // Sofort GeoJSON aus Cache bauen
         return buildFromCache(minLat, maxLat, minLon, maxLon, data, gridSize, dataService);
