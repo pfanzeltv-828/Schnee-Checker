@@ -65,7 +65,7 @@ public class MapPanel extends JPanel {
                 int dx = e.getX() - dragStart.x;
                 int dy = e.getY() - dragStart.y;
                 centerLon = dragStartLon - (dx / 256.0) * tile2LonDeg(zoom);
-                centerLat = dragStartLat + (dy / 256.0) * tile2LatDeg(dragStartLat, zoom);
+                centerLat = dragStartLat + (dy / 256.0) * tile2LatDeg(zoom);
                 repaint();
             }
         };
@@ -73,7 +73,7 @@ public class MapPanel extends JPanel {
         addMouseMotionListener(ma);
 
         addMouseWheelListener(e -> {
-            zoom = Math.max(3, Math.min(18, zoom - (int) e.getWheelRotation()));
+            zoom = Math.max(3, Math.min(18, zoom - e.getWheelRotation()));
             repaint();
             if (onZoomChanged != null) onZoomChanged.accept(zoom);
         });
@@ -241,7 +241,7 @@ public class MapPanel extends JPanel {
             path.closePath();
             g2.setColor(fill);
             g2.fill(path);
-            g2.setColor(fill.darker());
+            g2.setColor(border);
             g2.draw(path);
         }
     }
@@ -274,7 +274,7 @@ public class MapPanel extends JPanel {
         return 360.0 / (1 << zoom);
     }
 
-    private static double tile2LatDeg(double lat, int zoom) {
+    private static double tile2LatDeg(int zoom) {
         return Math.toDegrees(Math.atan(Math.sinh(Math.PI / (1 << zoom)))) * 2;
     }
 

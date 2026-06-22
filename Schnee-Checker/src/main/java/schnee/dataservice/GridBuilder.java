@@ -4,26 +4,18 @@ import java.io.IOException;
 import java.util.*;
 
 public class GridBuilder {
-
-    private final DataService elevationService;
-    private final DataService snowDepthService;
-
-    public GridBuilder(DataService elevationService, DataService snowDepthService) {
-        this.elevationService = elevationService;
-        this.snowDepthService = snowDepthService;
-    }
-
     /**
      * Startet Laden im Hintergrund und gibt sofort zurück was im Cache ist.
      */
     public String buildGeoJson(double minLat, double maxLat,
                                double minLon, double maxLon,
-                               int data, int gridSize, DataService dataService) throws IOException {
+                               int threshold, int gridSize, DataService dataService) throws IOException {
+
+        List<double[]> points = new ArrayList<>();
 
         double latStep = (maxLat - minLat) / gridSize;
         double lonStep = (maxLon - minLon) / gridSize;
 
-        List<double[]> points = new ArrayList<>();
         for (int i = 0; i < gridSize; i++) {
             for (int j = 0; j < gridSize; j++) {
                 double lat = minLat + i * latStep + latStep / 2;
@@ -32,18 +24,18 @@ public class GridBuilder {
             }
         }
 
-            dataService.getData(points);
+        //dataService.getData(points); -> caching funktioniert noch nicht, direkt fetchbatch (alle punkte neuladen)
+        dataService.fetchBatch(points);
 
-        // Sofort GeoJSON aus Cache bauen
-        return buildFromCache(minLat, maxLat, minLon, maxLon, data, gridSize, dataService);
+        return buildFromCache(minLat, maxLat, minLon, maxLon, threshold, gridSize, dataService);
     }
 
     /**
-     * Baut GeoJSON aus dem aktuellen Cache - sofort verfügbar.
+     * Baut GeoJSON aus dem aktuellen Cache.
      */
     public String buildFromCache(double minLat, double maxLat,
                                  double minLon, double maxLon,
-                                 int data, int gridSize, DataService dataService) {
+                                 int threshold, int gridSize, DataService dataService) {
 
         double latStep = (maxLat - minLat) / gridSize;
         double lonStep = (maxLon - minLon) / gridSize;
@@ -61,7 +53,7 @@ public class GridBuilder {
                 String key = dataService.makeKey(lat, lon);
 
                 Double value = cache.get(key);
-                if (value == null || value <= data) continue;
+                if (value == null || value <= threshold) continue;
 
                 if (!first) sb.append(",");
                 first = false;
@@ -78,7 +70,6 @@ public class GridBuilder {
                         .append("[").append(w).append(",").append(n).append("],")
                         .append("[").append(w).append(",").append(s).append("]")
                         .append("]]},")
-                        // --- NEU: Wert mit ins GeoJSON schreiben ---
                         .append("\"properties\":{\"value\":").append(value).append("}")
                         .append("}");
             }
@@ -87,4 +78,5 @@ public class GridBuilder {
         sb.append("]}");
         return sb.toString();
     }
+
 }

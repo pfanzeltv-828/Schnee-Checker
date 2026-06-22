@@ -75,8 +75,6 @@ public class LocalMapServer {
         frame.add(mapPanel,     BorderLayout.CENTER);
         frame.add(controlPanel, BorderLayout.EAST);
         frame.setVisible(true);
-
-        startStatusPoller(getSelectedService());
     }
 
     private void loadSelectedMode() {
@@ -84,15 +82,6 @@ public class LocalMapServer {
             loadElevation();
         } else {
             loadSnowDepth();
-
-        }
-    }
-
-    private DataService getSelectedService() {
-        if (controlPanel.getMode() == ControlPanel.Mode.ELEVATION) {
-            return elevationService;
-        } else {
-            return snowDepthService;
         }
     }
 
@@ -104,6 +93,7 @@ public class LocalMapServer {
     private void loadElevation() {
         if (isProcessing) return;
 
+        startStatusPoller(elevationService);
         isProcessing = true;
         controlPanel.setUpdateEnabled(false);
 
@@ -114,7 +104,7 @@ public class LocalMapServer {
         double minLat = bbox[0], maxLat = bbox[1];
         double minLon = bbox[2], maxLon = bbox[3];
 
-        controlPanel.setStatus("Lade Höhendaten...", new Color(107, 197, 255));
+        controlPanel.setStatus("Lade Höhendaten...", -1, new Color(107, 197, 255));
         System.out.printf("Anfrage: bbox=[%.4f,%.4f,%.4f,%.4f] threshold=%dm grid=%dx%d%n",
                 minLat, maxLat, minLon, maxLon, threshold, grid, grid);
 
@@ -129,15 +119,15 @@ public class LocalMapServer {
 
                 SwingUtilities.invokeLater(() -> {
                     mapPanel.setPolygons(polygons, threshold, 5000, false);
-                    controlPanel.setStatus(count + " Flächen über " + threshold + " m",
-                                            new Color(107, 255, 155));
+                    controlPanel.setStatus(count + " Flächen über " + threshold + " m", -1,
+                            new Color(107, 197, 255));
                     controlPanel.setUpdateEnabled(true);
                     isProcessing = false;
                 });
 
             } catch (Exception ex) {
                 SwingUtilities.invokeLater(() -> {
-                    controlPanel.setStatus("Fehler: " + ex.getMessage(), new Color(255, 100, 100));
+                    controlPanel.setStatus("Fehler: " + ex.getMessage(), -1, new Color(255, 100, 100));
                     controlPanel.setUpdateEnabled(true);
                     isProcessing = false;
                 });
@@ -149,6 +139,7 @@ public class LocalMapServer {
     private void loadSnowDepth() {
         if (isProcessing) return;
 
+        startStatusPoller(snowDepthService);
         isProcessing = true;
         controlPanel.setUpdateEnabled(false);
 
@@ -159,7 +150,7 @@ public class LocalMapServer {
         double minLat = bbox[0], maxLat = bbox[1];
         double minLon = bbox[2], maxLon = bbox[3];
 
-        controlPanel.setStatus("Lade Schneedaten...", new Color(107, 197, 255));
+        controlPanel.setStatus("Lade Schneedaten...", -1, new Color(107, 197, 255));
         System.out.printf("Anfrage: bbox=[%.4f,%.4f,%.4f,%.4f] threshold=%dcm grid=%dx%d%n",
                 minLat, maxLat, minLon, maxLon, threshold, grid, grid);
 
@@ -173,15 +164,15 @@ public class LocalMapServer {
 
                 SwingUtilities.invokeLater(() -> {
                     mapPanel.setPolygons(polygons, threshold, 200, true);
-                    controlPanel.setStatus(count + " Flächen über " + threshold + " cm Schnee",
-                            new Color(107, 255, 155));
+                    controlPanel.setStatus(count + " Flächen über " + threshold + " cm Schnee", -1,
+                            new Color(107, 197, 255));
                     controlPanel.setUpdateEnabled(true);
                     isProcessing = false;
                 });
 
             } catch (Exception ex) {
                 SwingUtilities.invokeLater(() -> {
-                    controlPanel.setStatus("Fehler: " + ex.getMessage(), new Color(255, 100, 100));
+                    controlPanel.setStatus("Fehler: " + ex.getMessage(), -1, new Color(255, 100, 100));
                     controlPanel.setUpdateEnabled(true);
                     isProcessing = false;
                 });
@@ -235,7 +226,8 @@ public class LocalMapServer {
                 String msg  = total > 0
                         ? String.format("Lade Punkte: %,d / %,d", loaded, total)
                         : String.format("Lade Punkte: %,d", loaded);
-                controlPanel.setStatus(msg, new Color(107, 197, 255));
+                int progress = (total > 0) ? (int) (loaded * 100 / total) : 0;
+                controlPanel.setStatus(msg, progress, new Color(107, 197, 255));
             }
         }).start();
     }

@@ -8,7 +8,6 @@ import java.util.function.Consumer;
 /**
  * Sidebar mit Modus-Umschalter (Höhe/Schnee), Slidern (Schwelle,
  * Rasterauflösung, Zoom) und dem "Aktualisieren"-Button.
- *
  * Liest den initialen Zoom vom übergebenen MapPanel, schreibt Zoom-Änderungen
  * dorthin zurück, kennt aber sonst keine Anwendungslogik. Wenn der Button
  * geklickt wird, ruft ControlPanel lediglich den übergebenen Callback auf –
@@ -37,7 +36,9 @@ public class ControlPanel extends JPanel {
     private JLabel  gridLabel;
     private JLabel  zoomLabel;
     private JLabel  statusLabel;
+    private JProgressBar statusProgressBar;
     private JButton updateBtn;
+    private Timer progressAnimationTimer;
 
     private Mode currentMode = Mode.ELEVATION;
 
@@ -66,9 +67,35 @@ public class ControlPanel extends JPanel {
     public int  getThreshold() { return thresholdSlider.getValue(); }
     public int  getGridSize()  { return gridSlider.getValue(); }
 
-    public void setStatus(String msg, Color color) {
-        statusLabel.setText(msg);
-        statusLabel.setForeground(color);
+    public void setStatus(String msg, int targetProgress, Color color) {
+        if (targetProgress < 0) {
+            statusLabel.setText(msg);
+            statusLabel.setForeground(color);
+        }
+
+        statusProgressBar.setVisible(targetProgress > 0 && targetProgress < 100);
+        animateProgressTo(targetProgress);
+    }
+
+    private void animateProgressTo(int target) {
+        if (progressAnimationTimer != null && progressAnimationTimer.isRunning()) {
+            progressAnimationTimer.stop();
+        }
+
+        progressAnimationTimer = new Timer(15, e -> {
+            int current = statusProgressBar.getValue();
+            int diff    = target - current;
+
+            if (diff == 0) {
+                ((Timer) e.getSource()).stop();
+                return;
+            }
+
+            int step = Math.max(1, Math.abs(diff) / 8);
+            int next = current + Integer.signum(diff) * step;
+            statusProgressBar.setValue(next);
+        });
+        progressAnimationTimer.start();
     }
 
     public void setUpdateEnabled(boolean enabled) {
@@ -167,6 +194,20 @@ public class ControlPanel extends JPanel {
         statusLabel.setFont(new Font("Segoe UI", Font.PLAIN, 11));
         statusLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
         add(statusLabel);
+
+        add(Box.createVerticalStrut(10));
+
+        statusProgressBar = new JProgressBar(0, 100);
+        statusProgressBar.setValue(0);
+        statusProgressBar.setVisible(false);
+        statusProgressBar.setStringPainted(false);
+        statusProgressBar.setForeground(new Color(107, 197, 255));
+        statusProgressBar.setBackground(new Color(35, 35, 50));
+        statusProgressBar.setBorderPainted(false);
+        statusProgressBar.setAlignmentX(Component.LEFT_ALIGNMENT);
+        statusProgressBar.setMaximumSize(new Dimension(Integer.MAX_VALUE, 6));
+        statusProgressBar.setPreferredSize(new Dimension(Integer.MAX_VALUE, 6));
+        add(statusProgressBar);
 
         add(Box.createVerticalGlue());
         add(buildLegend());

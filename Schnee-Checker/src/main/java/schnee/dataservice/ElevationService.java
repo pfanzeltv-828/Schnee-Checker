@@ -26,20 +26,24 @@ public class ElevationService extends DataService {
     private volatile int totalPoints = 0;
     private volatile int loadedPoints = 0;
 
-    public Map<String, Double> getData(List<double[]> points) throws IOException {
-        Map<String, Double> results = new LinkedHashMap<>();
-
+    public void fillCache(List<double[]> points) throws IOException {
         List<double[]> toFetch = new ArrayList<>();
+        int hits = 0;
+
         for (double[] pt : points) {
             String key = makeKey(pt[0], pt[1]);
-            if (cache.containsKey(key)) {
-                results.put(key, cache.get(key));
-            } else {
+            if (!cache.containsKey(key)) {
                 toFetch.add(pt);
+            }else{
+                hits++;
             }
         }
 
-        if (toFetch.isEmpty()) {System.out.println(results);return results;}
+        System.out.println(
+                "Cache hits: " + hits
+        );
+
+        if (toFetch.isEmpty()) {return;}
 
         loading = true;
         totalPoints = toFetch.size();
@@ -48,44 +52,22 @@ public class ElevationService extends DataService {
         try {
             for (int i = 0; i < toFetch.size(); i += 100) {
                 List<double[]> batch = toFetch.subList(i, Math.min(i + 100, toFetch.size()));
-
-                try {
-                    Map<String, Double> batchResults = fetchBatch(batch);
-                    results.putAll(batchResults);
-                    loadedPoints += batchResults.size();
-                    System.out.println("Batch fertig: " + loadedPoints + "/" + totalPoints);
-                } catch (IOException e) {
-                    if (e.getMessage().contains("429") || e.getMessage().contains("400")) {
-                        System.out.println("Rate limit - warte 60s...");
-                        try { Thread.sleep(60000); } catch (InterruptedException ignored) {}
-                        Map<String, Double> batchResults = fetchBatch(batch);
-                        results.putAll(batchResults);
-                        loadedPoints += batchResults.size();
-                    } else {
-                        throw e;
-                    }
-                }
-
-                if (i + 100 < toFetch.size()) {
-                    try { Thread.sleep(2000); } catch (InterruptedException ignored) {}
-                }
+                fetchBatch(batch);
+                loadedPoints += batch.size();
             }
         } finally {
             loading = false;
         }
 
-        return results;
     }
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
-    private Map<String, Double> fetchBatch(List<double[]> points) throws IOException {
-        Map<String, Double> results = new LinkedHashMap<>();
-
+    public void fetchBatch(List<double[]> points) throws IOException {
         StringBuilder lats = new StringBuilder();
         StringBuilder lons = new StringBuilder();
         for (double[] pt : points) {
-            if (lats.length() > 0) { lats.append(","); lons.append(","); }
+            if (!lats.isEmpty()) { lats.append(","); lons.append(","); }
             lats.append(String.format(Locale.US, "%.4f", pt[0]));
             lons.append(String.format(Locale.US, "%.4f", pt[1]));
         }
@@ -100,10 +82,7 @@ public class ElevationService extends DataService {
             double elev = elevationArray.get(i).asDouble();
             String key = makeKey(points.get(i)[0], points.get(i)[1]);
             cache.put(key, elev);
-            results.put(key, elev);
         }
-
-        return results;
     }
 
     private String httpGet(String urlStr) throws IOException {

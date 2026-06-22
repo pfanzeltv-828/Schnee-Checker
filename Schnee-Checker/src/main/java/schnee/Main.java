@@ -14,10 +14,10 @@ public class Main extends Application {
     LocalMapServer app;
 
     @Override
-    public void start(Stage stage) throws Exception {
+    public void start(Stage stage) {
         ElevationService elevationService = new ElevationService();
         SnowDepthService snowDepthService = new SnowDepthService();
-        GridBuilder gridBuilder = new GridBuilder(elevationService,snowDepthService);
+        GridBuilder gridBuilder = new GridBuilder();
 
         app = new LocalMapServer(gridBuilder, elevationService, snowDepthService);
         app.start();
