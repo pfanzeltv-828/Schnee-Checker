@@ -4,9 +4,7 @@ import java.io.IOException;
 import java.util.*;
 
 public class GridBuilder {
-    /**
-     * Startet Laden im Hintergrund und gibt sofort zurück was im Cache ist.
-     */
+
     public String buildGeoJson(double minLat, double maxLat,
                                double minLon, double maxLon,
                                int threshold, int gridSize, DataService dataService) throws IOException {
@@ -24,16 +22,16 @@ public class GridBuilder {
             }
         }
 
-        //dataService.getData(points); -> caching funktioniert noch nicht, direkt fetchbatch (alle punkte neuladen)
+        //dataService.fillCache(points); -> caching funktioniert noch nicht, direkt fetchbatch (alle punkte neuladen)
         dataService.fetchBatch(points);
 
-        return buildFromCache(minLat, maxLat, minLon, maxLon, threshold, gridSize, dataService);
+        return loadFromCache(minLat, maxLat, minLon, maxLon, threshold, gridSize, dataService);
     }
 
     /**
      * Baut GeoJSON aus dem aktuellen Cache.
      */
-    public String buildFromCache(double minLat, double maxLat,
+    public String loadFromCache(double minLat, double maxLat,
                                  double minLon, double maxLon,
                                  int threshold, int gridSize, DataService dataService) {
 
