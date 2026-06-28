@@ -22,8 +22,7 @@ public class GridBuilder {
             }
         }
 
-        //dataService.fillCache(points); -> caching funktioniert noch nicht, direkt fetchbatch (alle punkte neuladen)
-        dataService.fetchBatch(points);
+        dataService.fetchMissing(points,latStep,lonStep); //-> caching funktioniert noch nicht, eig direkt fetchbatch (alle punkte neuladen)
 
         return loadFromCache(minLat, maxLat, minLon, maxLon, threshold, gridSize, dataService);
     }
