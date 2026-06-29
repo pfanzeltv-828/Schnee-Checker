@@ -5,18 +5,10 @@ import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.util.function.Consumer;
 
-/**
- * Sidebar mit Modus-Umschalter (Höhe/Schnee), Slidern (Schwelle,
- * Rasterauflösung, Zoom) und dem "Aktualisieren"-Button.
- * Liest den initialen Zoom vom übergebenen MapPanel, schreibt Zoom-Änderungen
- * dorthin zurück, kennt aber sonst keine Anwendungslogik. Wenn der Button
- * geklickt wird, ruft ControlPanel lediglich den übergebenen Callback auf –
- * was dabei passiert (welche Daten geladen werden) entscheidet der Aufrufer,
- * der über getMode() abfragt, welcher Modus aktuell gewählt ist.
- */
+//Zeigt die Steuerelemente an und nimmt Eingaben des USers entgegen
 public class ControlPanel extends JPanel {
 
-    /** Welche Datenart aktuell angezeigt werden soll. */
+    // Welche Datenart aktuell angezeigt werden soll
     public enum Mode { ELEVATION, SNOW_DEPTH }
 
     // Slider-Bereiche je Modus: {min, max, default}
@@ -40,29 +32,24 @@ public class ControlPanel extends JPanel {
     private JButton updateBtn;
     private Timer progressAnimationTimer;
 
+    private JPanel legendLeg;
+    private JPanel legendBox;
+    private JLabel legendTxt;
+
     private Mode currentMode = Mode.ELEVATION;
 
-    /**
-     * @param mapPanel          Referenz für Zoom-Initialwert und Synchronisation
-     * @param onUpdateRequested wird aufgerufen, wenn der Button geklickt wird
-     */
     public ControlPanel(MapPanel mapPanel, Consumer<Void> onUpdateRequested) {
         this.mapPanel          = mapPanel;
         this.onUpdateRequested = onUpdateRequested;
         build();
 
-        // MapPanel ruft dies bei Mausrad-Zoom auf, damit der Slider mitzieht
+        // MapPanel ruft bei Mausrad-Zoom auf, damit der Slider mitzieht
         mapPanel.setOnZoomChanged(z -> SwingUtilities.invokeLater(() -> {
             zoomSlider.setValue(z);
             zoomLabel.setText("Zoom: " + z);
         }));
     }
 
-    // =========================================================================
-    // Öffentliche Getter – Aufrufer liest hierüber die aktuellen Werte
-    // =========================================================================
-
-    /** Aktuell gewählter Modus – bestimmt, welche Lade-Methode der Aufrufer nutzen sollte. */
     public Mode getMode()     { return currentMode; }
     public int  getThreshold() { return thresholdSlider.getValue(); }
     public int  getGridSize()  { return gridSlider.getValue(); }
@@ -102,10 +89,6 @@ public class ControlPanel extends JPanel {
         updateBtn.setEnabled(enabled);
     }
 
-    // =========================================================================
-    // Aufbau
-    // =========================================================================
-
     private void build() {
         setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
         setBackground(new Color(20, 20, 32));
@@ -119,11 +102,9 @@ public class ControlPanel extends JPanel {
         add(title);
         add(Box.createVerticalStrut(18));
 
-        // --- Modus-Umschalter ---
         add(buildModeSwitch());
         add(Box.createVerticalStrut(18));
 
-        // --- Schwelle (Höhe oder Schnee, je nach Modus) ---
         thresholdLabel = makeLabel("Höhenschwelle: 500 m");
         add(thresholdLabel);
         add(Box.createVerticalStrut(5));
@@ -136,7 +117,6 @@ public class ControlPanel extends JPanel {
         add(thresholdSlider);
         add(Box.createVerticalStrut(16));
 
-        // --- Rasterauflösung ---
         gridLabel = makeLabel("Rasterauflösung: 10 × 10");
         add(gridLabel);
         add(Box.createVerticalStrut(5));
@@ -154,7 +134,6 @@ public class ControlPanel extends JPanel {
         add(gridSlider);
         add(Box.createVerticalStrut(20));
 
-        // --- Zoom-Slider (synchronisiert mit Mausrad) ---
         add(makeLabel("Zoom-Stufe:"));
         add(Box.createVerticalStrut(4));
 
@@ -167,14 +146,12 @@ public class ControlPanel extends JPanel {
         zoomSlider.addChangeListener(e -> {
             int z = zoomSlider.getValue();
             zoomLabel.setText("Zoom: " + z);
-            // Mittelpunkt vom Panel lesen, nicht aus eigenen Feldern!
             mapPanel.setView(mapPanel.getCenterLat(), mapPanel.getCenterLon(), z);
         });
         add(zoomSlider);
         add(zoomLabel);
         add(Box.createVerticalStrut(20));
 
-        // --- Aktualisieren-Button ---
         updateBtn = new JButton("Layer aktualisieren");
         updateBtn.setBackground(new Color(220, 60, 60));
         updateBtn.setForeground(Color.WHITE);
@@ -188,13 +165,11 @@ public class ControlPanel extends JPanel {
         add(updateBtn);
         add(Box.createVerticalStrut(10));
 
-        // --- Status ---
         statusLabel = new JLabel("Bereit");
         statusLabel.setForeground(new Color(120, 120, 140));
         statusLabel.setFont(new Font("Segoe UI", Font.PLAIN, 11));
         statusLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
         add(statusLabel);
-
         add(Box.createVerticalStrut(10));
 
         statusProgressBar = new JProgressBar(0, 100);
@@ -210,10 +185,25 @@ public class ControlPanel extends JPanel {
         add(statusProgressBar);
 
         add(Box.createVerticalGlue());
-        add(buildLegend());
+
+        legendLeg = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
+        legendLeg.setBackground(new Color(20, 20, 32));
+        legendLeg.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        legendBox = new JPanel();
+        legendBox.setBackground(new Color(220, 50, 50, 140));
+        legendBox.setBorder(BorderFactory.createLineBorder(new Color(220, 50, 50)));
+        legendBox.setPreferredSize(new Dimension(16, 16));
+
+        legendTxt = new JLabel("Über Schwelle");
+        legendTxt.setForeground(new Color(170, 170, 190));
+        legendTxt.setFont(new Font("Segoe UI", Font.PLAIN, 11));
+
+        legendLeg.add(legendBox);
+        legendLeg.add(legendTxt);
+        add(legendLeg);
     }
 
-    /** Baut die zwei Radiobuttons für die Modus-Auswahl (Höhe / Schnee). */
     private JPanel buildModeSwitch() {
         JPanel panel = new JPanel();
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
@@ -244,7 +234,6 @@ public class ControlPanel extends JPanel {
         return panel;
     }
 
-    /** Wechselt den Modus, passt den Slider-Bereich an und aktualisiert das Label. */
     private void switchMode(Mode mode) {
         if (mode == currentMode) return;
         currentMode = mode;
@@ -256,13 +245,16 @@ public class ControlPanel extends JPanel {
         updateThresholdLabel();
     }
 
-    /** Aktualisiert die Schwellen-Beschriftung passend zum aktuellen Modus (m vs. cm). */
     private void updateThresholdLabel() {
         int value = thresholdSlider.getValue();
         if (currentMode == Mode.ELEVATION) {
             thresholdLabel.setText("Höhenschwelle: " + value + " m");
+            legendBox.setBackground(new Color(220, 50, 50, 140));
+            legendBox.setBorder(BorderFactory.createLineBorder(new Color(220, 50, 50)));
         } else {
             thresholdLabel.setText("Schneeschwelle: " + value + " cm");
+            legendBox.setBackground(new Color(10, 89, 165, 255));
+            legendBox.setBorder(BorderFactory.createLineBorder(new Color(102, 155, 236)));
         }
     }
 
@@ -277,24 +269,5 @@ public class ControlPanel extends JPanel {
         l.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         l.setAlignmentX(Component.LEFT_ALIGNMENT);
         return l;
-    }
-
-    private JPanel buildLegend() {
-        JPanel leg = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
-        leg.setBackground(new Color(20, 20, 32));
-        leg.setAlignmentX(Component.LEFT_ALIGNMENT);
-
-        JPanel box = new JPanel();
-        box.setBackground(new Color(220, 50, 50, 140));
-        box.setBorder(BorderFactory.createLineBorder(new Color(220, 50, 50)));
-        box.setPreferredSize(new Dimension(16, 16));
-
-        JLabel txt = new JLabel("Über Schwelle");
-        txt.setForeground(new Color(170, 170, 190));
-        txt.setFont(new Font("Segoe UI", Font.PLAIN, 11));
-
-        leg.add(box);
-        leg.add(txt);
-        return leg;
     }
 }

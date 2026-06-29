@@ -14,17 +14,7 @@ import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-/**
- * Koordiniert MapPanel, ControlPanel und die Datenbeschaffung.
- *
- * Kennt als einzige Klasse sowohl MapPanel als auch ControlPanel und
- * verdrahtet sie: reicht den "Aktualisieren"-Klick aus dem ControlPanel
- * an loadElevation() weiter, ruft gridBuilder auf, parst das Ergebnis
- * mit GeoJsonParser und übergibt es an mapPanel.setPolygons(...).
- *
- * Enthält selbst keine Zeichen-, Parse- oder reine UI-Aufbaulogik mehr –
- * die liegt in MapPanel, GeoJsonParser bzw. ControlPanel.
- */
+//Koordiniert MapPanel, ControlPanel und die Datenbeschaffung.
 public class LocalMapServer {
 
     private final GridBuilder gridBuilder;
@@ -54,10 +44,6 @@ public class LocalMapServer {
         executor.shutdownNow();
     }
 
-    // =========================================================================
-    // GUI-Aufbau: nur Verdrahtung, kein eigenes Layout-Detail mehr
-    // =========================================================================
-
     private void buildAndShowGui() {
         JFrame frame = new JFrame("⛰ Schnee-Checker");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -84,11 +70,6 @@ public class LocalMapServer {
             loadSnowDepth();
         }
     }
-
-    // =========================================================================
-    // Höhendaten laden – liest Zoom/Lat/Lon immer frisch vom MapPanel,
-    // Threshold/Grid immer frisch vom ControlPanel
-    // =========================================================================
 
     private void loadElevation() {
         if (isProcessing) return;

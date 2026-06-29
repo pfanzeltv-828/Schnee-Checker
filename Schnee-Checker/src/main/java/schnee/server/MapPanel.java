@@ -11,20 +11,9 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.IntConsumer;
 
-/**
- * Zeichnet OpenStreetMap-Kacheln und Höhen-Polygone.
- *
- * MapPanel ist die einzige Quelle der Wahrheit für Zoom, Lat und Lon –
- * aufrufender Code muss diese Werte über {@link #getZoom()},
- * {@link #getCenterLat()}, {@link #getCenterLon()} oder
- * {@link #getBoundingBox()} abfragen, statt eigene Kopien zu pflegen.
- *
- * Kennt nichts von LocalMapServer oder dem Control-Panel; Kommunikation
- * nach außen läuft ausschließlich über den optionalen Zoom-Callback.
- */
+//Zeichnet OpenStreetMap-Kacheln und Höhen-Polygone.
 public class MapPanel extends JPanel {
 
-    // --- interner Zustand: NUR hier wird Zoom/Lat/Lon verwaltet ---
     private double centerLat = 47.5;
     private double centerLon = 11.5;
     private int    zoom      = 9;
@@ -34,7 +23,6 @@ public class MapPanel extends JPanel {
     private double colorScaleMax = 200;
     private boolean useColorGradient = false;
 
-    // Kachel-Cache
     private final Map<String, Image> tileCache = new LinkedHashMap<>(256, 0.75f, true) {
         protected boolean removeEldestEntry(Map.Entry<String, Image> e) {
             return size() > 200;
@@ -43,12 +31,9 @@ public class MapPanel extends JPanel {
     private final ExecutorService tileExecutor = Executors.newFixedThreadPool(6);
     private final Set<String>     pending      = Collections.synchronizedSet(new HashSet<>());
 
-    // Drag-Zustand
     private Point  dragStart    = null;
     private double dragStartLat, dragStartLon;
 
-    // Callback → erlaubt es einem Außenstehenden (z.B. ControlPanel), sich
-    // bei Mausrad-Zoom synchron zu halten, ohne dass MapPanel ihn kennt
     private IntConsumer onZoomChanged;
 
     public MapPanel() {
@@ -79,14 +64,8 @@ public class MapPanel extends JPanel {
         });
     }
 
-    // =========================================================================
-    // Öffentliche Schnittstelle
-    // =========================================================================
-
-    /** Registriert einen Callback, der bei Mausrad-Zoom mit dem neuen Zoom-Wert aufgerufen wird. */
     public void setOnZoomChanged(IntConsumer cb) { this.onZoomChanged = cb; }
 
-    /** Setzt Ansicht von außen (z.B. durch einen Zoom-Slider). */
     public void setView(double lat, double lon, int z) {
         this.centerLat = lat;
         this.centerLon = lon;
@@ -106,10 +85,6 @@ public class MapPanel extends JPanel {
     public double getCenterLat() { return centerLat; }
     public double getCenterLon() { return centerLon; }
 
-    /**
-     * Berechnet die Bounding Box des sichtbaren Kartenausschnitts.
-     * Nutzt immer den aktuellen internen Zustand – korrekt nach Mausrad und Drag.
-     */
     public double[] getBoundingBox() {
         int w = getWidth();
         int h = getHeight();
@@ -123,10 +98,6 @@ public class MapPanel extends JPanel {
         double minLat   = pixelToLat(h, h);
         return new double[]{minLat, maxLat, minLon, maxLon};
     }
-
-    // =========================================================================
-    // Zeichnen
-    // =========================================================================
 
     @Override
     protected void paintComponent(Graphics g) {
@@ -257,10 +228,6 @@ public class MapPanel extends JPanel {
         return new Color(r, g, b, 170);
     }
 
-    // =========================================================================
-    // Projektion
-    // =========================================================================
-
     private static double lonToTileX(double lon, int zoom) {
         return (lon + 180.0) / 360.0 * (1 << zoom);
     }
@@ -278,7 +245,6 @@ public class MapPanel extends JPanel {
         return Math.toDegrees(Math.atan(Math.sinh(Math.PI / (1 << zoom)))) * 2;
     }
 
-    /** Konvertiert einen y-Pixel-Wert zur geografischen Breite. */
     private double pixelToLat(int py, int h) {
         double yTileCenter = latToTileY(centerLat, zoom);
         double tileY = yTileCenter + (py - h / 2.0) / 256.0;

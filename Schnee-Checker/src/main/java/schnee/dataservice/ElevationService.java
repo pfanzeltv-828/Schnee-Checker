@@ -37,219 +37,90 @@ public class ElevationService extends DataService {
     private volatile int totalPoints = 0;
     private volatile int loadedPoints = 0;
 
-    public void fetchMissing(List<double[]> points, double latStep, double lonStep)
-            throws IOException {
-
-        List<double[]> toFetch =
-                new ArrayList<>();
-
+    public void fetchMissing(List<double[]> points, double latStep, double lonStep) throws IOException {
+        List<double[]> toFetch = new ArrayList<>();
         int hits = 0;
 
         for (double[] pt : points) {
-
-            String key =
-                    makeKey(
-                            pt[0],
-                            pt[1]
-                    );
-
-            Double value =
-                    checkPolygonCache(
-                            pt[0], pt[1], latStep, lonStep
-                    );
+            String key = makeKey(pt[0], pt[1]);
+            Double value = checkPolygonCache(pt[0], pt[1], latStep, lonStep);
 
             if (value != -1) {
-
-                cache.put(
-                        key,
-                        value
-                );
-
+                cache.put(key, value);
                 hits++;
-
             } else {
-
-                toFetch.add(
-                        pt
-                );
+                toFetch.add(pt);
             }
         }
 
-        System.out.println(
-                "Cache hits: "
-                        + hits
-        );
+        System.out.println("Cache hits: " + hits);
 
         if (toFetch.isEmpty()) {
             return;
         }
 
         loading = true;
-
-        totalPoints =
-                toFetch.size();
-
+        totalPoints = toFetch.size();
         loadedPoints = 0;
 
         try {
 
-            for (
-                    int i = 0;
-                    i < totalPoints;
-                    i += 100
-            ) {
+            for (int i = 0; i < totalPoints; i += 100) {
 
-                List<double[]> batch =
-                        toFetch.subList(
-                                i,
-                                Math.min(
-                                        i + 100,
-                                        totalPoints
-                                )
-                        );
+                List<double[]> batch = toFetch.subList(i, Math.min(i + 100, totalPoints));
 
                 try {
-
-                    fetchBatch(
-                            batch, latStep, lonStep
-                    );
-
-                    loadedPoints +=
-                            batch.size();
-
-                    System.out.println(
-                            "Batch fertig: "
-                                    + loadedPoints
-                                    + "/"
-                                    + totalPoints
-                    );
-
-                } catch (
-                        IOException e
-                ) {
-
-                    if (
-                            e.getMessage().contains("429")
-                                    ||
-                                    e.getMessage().contains("400")
-                    ) {
-
-                        System.out.println(
-                                "Rate limit - warte 60s..."
-                        );
-
+                    fetchBatch(batch, latStep, lonStep);
+                    loadedPoints += batch.size();
+                    System.out.println("Batch fertig: " + loadedPoints + "/" + totalPoints);
+                } catch (IOException e) {
+                    if (e.getMessage().contains("429") || e.getMessage().contains("400")) {
+                        System.out.println("Rate limit - warte 60s...");
                         try {
-
-                            Thread.sleep(
-                                    60000
-                            );
-
-                        } catch (
-                                InterruptedException ignored
-                        ) {
-                        }
-
-                        fetchBatch(
-                                batch, latStep, lonStep
-                        );
-
+                            Thread.sleep(60000);
+                        } catch (InterruptedException ignored) {}
+                        fetchBatch(batch, latStep, lonStep);
                     } else {
-
                         throw e;
                     }
                 }
 
-                if (
-                        i + 100
-                                <
-                                totalPoints
-                ) {
-
+                if (i + 100 < totalPoints) {
                     try {
-
-                        Thread.sleep(
-                                2000
-                        );
-
-                    } catch (
-                            InterruptedException ignored
-                    ) {
-                    }
+                        Thread.sleep(2000);
+                    } catch (InterruptedException ignored) {}
                 }
+
             }
-
         } finally {
-
             loading = false;
         }
     }
 
-    public String makePolygonKey(
-            double lat,
-            double lon, double latStep, double lonStep) {
 
-        return lat + "," + lon + "," + latStep + "," + lonStep;
-    }
-
-
-    public Double checkPolygonCache(
-            double lat,
-            double lon,
-            double currentLatStep,
-            double currentLonStep
-    ) {
-
+    public Double checkPolygonCache(double lat, double lon, double currentLatStep, double currentLonStep) {
         for (Map.Entry<String, Double> entry : polygonCache.entrySet()) {
+            String[] parts = entry.getKey().split(",");
 
-            String[] parts =
-                    entry.getKey().split(",");
+            double centerLat = Double.parseDouble(parts[0]);
+            double centerLon = Double.parseDouble(parts[1]);
+            double storedLatStep = Double.parseDouble(parts[2]);
+            double storedLonStep = Double.parseDouble(parts[3]);
 
-            double centerLat =
-                    Double.parseDouble(parts[0]);
-
-            double centerLon =
-                    Double.parseDouble(parts[1]);
-
-            double storedLatStep =
-                    Double.parseDouble(parts[2]);
-
-            double storedLonStep =
-                    Double.parseDouble(parts[3]);
-
-            // nur gleich oder FEINER verwenden
-            if (
-                    storedLatStep > currentLatStep
-                            ||
-                            storedLonStep > currentLonStep
-            ) {
+            // nur gleich oder feiner verwenden
+            if (storedLatStep > currentLatStep || storedLonStep > currentLonStep) {
                 continue;
             }
 
-            double minLat =
-                    centerLat - storedLatStep / 2;
+            double minLat = centerLat - storedLatStep / 2;
+            double maxLat = centerLat + storedLatStep / 2;
+            double minLon = centerLon - storedLonStep / 2;
+            double maxLon = centerLon + storedLonStep / 2;
 
-            double maxLat =
-                    centerLat + storedLatStep / 2;
-
-            double minLon =
-                    centerLon - storedLonStep / 2;
-
-            double maxLon =
-                    centerLon + storedLonStep / 2;
-
-            if (
-                    lat >= minLat
-                            &&
-                            lat < maxLat
-                            &&
-                            lon >= minLon
-                            &&
-                            lon < maxLon
-            ) {
+            if (lat >= minLat && lat < maxLat && lon >= minLon && lon < maxLon) {
                 return entry.getValue();
             }
         }
-
         return -1.0;
     }
 
@@ -272,15 +143,13 @@ public class ElevationService extends DataService {
 
         for (int i = 0; i < elevationArray.size() && i < points.size(); i++) {
             double value = elevationArray.get(i).asDouble();
-            String key = makeKey(points.get(i)[0], points.get(i)[1]);
-            cache.put(key, value);
-            String polygon =
-                    makePolygonKey(points.get(i)[0], points.get(i)[1],latStep,lonStep);
+            double[] pt = points.get(i);
 
-            polygonCache.putIfAbsent(
-                    polygon,
-                    value
-            );
+            String key = makeKey(pt[0], pt[1]);
+            cache.put(key, value);
+
+            String polygon = makePolygonKey(points.get(i)[0], points.get(i)[1],latStep,lonStep);
+            polygonCache.putIfAbsent(polygon, value);
         }
     }
 
@@ -310,5 +179,8 @@ public class ElevationService extends DataService {
     public Map<String, Double> getCache() { return cache; }
     public String makeKey(double lat, double lon) {
         return String.format(Locale.US, "%.4f,%.4f", lat, lon);
+    }
+    public String makePolygonKey(double lat, double lon, double latStep, double lonStep) {
+        return lat + "," + lon + "," + latStep + "," + lonStep;
     }
 }
