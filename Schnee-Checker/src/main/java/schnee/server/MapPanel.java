@@ -14,9 +14,9 @@ import java.util.function.IntConsumer;
 //Zeichnet OpenStreetMap-Kacheln und Höhen-Polygone.
 public class MapPanel extends JPanel {
 
-    private double centerLat = 47.098;
-    private double centerLon = 12.662;
-    private int    zoom      = 14;
+    private double centerLat = 47.5;
+    private double centerLon = 11.5;
+    private int    zoom      = 9;
 
     private List<LocalMapServer.PolygonFeature> polygons = new ArrayList<>();
     private boolean mode = false;
