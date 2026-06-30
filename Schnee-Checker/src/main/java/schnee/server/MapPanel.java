@@ -19,9 +19,7 @@ public class MapPanel extends JPanel {
     private int    zoom      = 14;
 
     private List<LocalMapServer.PolygonFeature> polygons = new ArrayList<>();
-    private double colorScaleMin = 0;
-    private double colorScaleMax = 200;
-    private boolean useColorGradient = false;
+    private boolean mode = false;
 
     private final Map<String, Image> tileCache = new LinkedHashMap<>(256, 0.75f, true) {
         protected boolean removeEldestEntry(Map.Entry<String, Image> e) {
@@ -73,11 +71,9 @@ public class MapPanel extends JPanel {
         repaint();
     }
 
-    public void setPolygons(List<LocalMapServer.PolygonFeature> p, double min, double max, boolean useColorGradient) {
+    public void setPolygons(List<LocalMapServer.PolygonFeature> p, boolean mode) {
         this.polygons      = p;
-        this.colorScaleMin = min;
-        this.colorScaleMax = max;
-        this.useColorGradient  = useColorGradient;
+        this.mode  = mode;
         repaint();
     }
 
@@ -199,8 +195,8 @@ public class MapPanel extends JPanel {
             double[][] polygon = feature.points();
             if (polygon.length < 3) continue;
 
-            Color fill   = useColorGradient ? SnowDepthFill : ElevationFill;
-            Color border = useColorGradient ? SnowDepthBorder : ElevationBorder;
+            Color fill   = mode ? SnowDepthFill : ElevationFill;
+            Color border = mode ? SnowDepthBorder : ElevationBorder;
 
             Path2D.Double path = new Path2D.Double();
             boolean first = true;
@@ -218,17 +214,6 @@ public class MapPanel extends JPanel {
             g2.setColor(border);
             g2.draw(path);
         }
-    }
-
-    private Color valueToColor(double value) {
-        double range = colorScaleMax - colorScaleMin;
-        double t = (range <= 0) ? 0 : (value - colorScaleMin) / range;
-        t = Math.max(0.0, Math.min(1.0, t));
-
-        int r = (int) (200 + t * (10  - 200));
-        int g = (int) (230 + t * (40  - 230));
-        int b = (int) (255 + t * (130 - 255));
-        return new Color(r, g, b, 170);
     }
 
     private static double lonToTileX(double lon, int zoom) {

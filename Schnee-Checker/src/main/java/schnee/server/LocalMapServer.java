@@ -99,7 +99,7 @@ public class LocalMapServer {
                 int count = polygons.size();
 
                 SwingUtilities.invokeLater(() -> {
-                    mapPanel.setPolygons(polygons, threshold, 5000, false);
+                    mapPanel.setPolygons(polygons, false);
                     controlPanel.setStatus(count + " Flächen über " + threshold + " m", -1,
                             new Color(107, 197, 255));
                     controlPanel.setUpdateEnabled(true);
@@ -144,7 +144,7 @@ public class LocalMapServer {
                 int count = polygons.size();
 
                 SwingUtilities.invokeLater(() -> {
-                    mapPanel.setPolygons(polygons, threshold, 200, true);
+                    mapPanel.setPolygons(polygons, true);
                     controlPanel.setStatus(count + " Flächen über " + threshold + " cm Schnee", -1,
                             new Color(107, 197, 255));
                     controlPanel.setUpdateEnabled(true);
@@ -174,7 +174,7 @@ public class LocalMapServer {
 
         for (JsonNode feature : features) {
             // GeoJSON liefert Koordinaten als [lon, lat] – pro Polygon ein Ring
-            // mit beliebig vielen Punkten: [[[lon,lat], [lon,lat], ...]]
+            // mit beliebig vielen Punkten: [[[lon, lat], [lon, lat], ...]]
             JsonNode ring = feature.path("geometry").path("coordinates").get(0);
             if (ring == null) continue;
 
