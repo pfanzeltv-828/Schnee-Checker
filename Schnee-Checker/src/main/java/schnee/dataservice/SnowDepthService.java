@@ -220,6 +220,6 @@ public class SnowDepthService extends DataService {
         return String.format(Locale.US, "%.4f,%.4f", lat, lon);
     }
     public String makePolygonKey(double lat, double lon, double latStep, double lonStep) {
-        return String.format(Locale.US, "%.4f,%.4f,%.4f,%.4f", lat, lon, latStep, lonStep);
+        return lat + "," + lon + "," + latStep + "," + lonStep;
     }
 }
