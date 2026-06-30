@@ -249,13 +249,14 @@ public class ControlPanel extends JPanel {
         int value = thresholdSlider.getValue();
         if (currentMode == Mode.ELEVATION) {
             thresholdLabel.setText("Höhenschwelle: " + value + " m");
-            legendBox.setBackground(new Color(220, 50, 50, 140));
+            legendBox.setBackground(new Color(129, 5, 5));
             legendBox.setBorder(BorderFactory.createLineBorder(new Color(220, 50, 50)));
         } else {
             thresholdLabel.setText("Schneeschwelle: " + value + " cm");
-            legendBox.setBackground(new Color(10, 89, 165, 255));
-            legendBox.setBorder(BorderFactory.createLineBorder(new Color(102, 155, 236)));
+            legendBox.setBackground(new Color(4, 78, 145));
+            legendBox.setBorder(BorderFactory.createLineBorder(new Color(69, 150, 223)));
         }
+
     }
 
     private void styleSlider(JSlider s) {

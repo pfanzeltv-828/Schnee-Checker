@@ -129,7 +129,6 @@ public class SnowDepthService extends DataService {
         return -1.0;
     }
 
-
     private final ObjectMapper mapper = new ObjectMapper();
 
     public void fetchBatch(List<double[]> points, double latStep, double lonStep) throws IOException {
@@ -188,8 +187,10 @@ public class SnowDepthService extends DataService {
                     break;
                 }
             }
+
         }
     }
+
 
 
     private String httpGet(String urlStr) throws IOException {
@@ -220,6 +221,13 @@ public class SnowDepthService extends DataService {
         return String.format(Locale.US, "%.4f,%.4f", lat, lon);
     }
     public String makePolygonKey(double lat, double lon, double latStep, double lonStep) {
-        return String.format(Locale.US, "%.4f,%.4f,%.4f,%.4f", lat, lon, latStep, lonStep);
+        return String.format(
+                Locale.US,
+                "%.5f,%.5f,%.5f,%.5f",
+                lat,
+                lon,
+                latStep,
+                lonStep
+        );
     }
 }

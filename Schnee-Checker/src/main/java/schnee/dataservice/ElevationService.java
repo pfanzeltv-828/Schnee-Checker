@@ -181,6 +181,6 @@ public class ElevationService extends DataService {
         return String.format(Locale.US, "%.4f,%.4f", lat, lon);
     }
     public String makePolygonKey(double lat, double lon, double latStep, double lonStep) {
-        return lat + "," + lon + "," + latStep + "," + lonStep;
+        return String.format(Locale.US, "%.5f,%.5f,%.5f,%.5f", lat, lon, latStep, lonStep);
     }
 }

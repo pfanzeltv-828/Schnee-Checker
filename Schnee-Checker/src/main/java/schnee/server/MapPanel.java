@@ -14,9 +14,9 @@ import java.util.function.IntConsumer;
 //Zeichnet OpenStreetMap-Kacheln und Höhen-Polygone.
 public class MapPanel extends JPanel {
 
-    private double centerLat = 47.5;
-    private double centerLon = 11.5;
-    private int    zoom      = 9;
+    private double centerLat = 47.098;
+    private double centerLon = 12.662;
+    private int    zoom      = 14;
 
     private List<LocalMapServer.PolygonFeature> polygons = new ArrayList<>();
     private double colorScaleMin = 0;
@@ -189,15 +189,18 @@ public class MapPanel extends JPanel {
         double yTileCenter = latToTileY(centerLat, zoom);
         g2.setStroke(new BasicStroke(0.8f));
 
-        Color fixedFill   = new Color(220, 50, 50, 115); // feste rote Farbe für Elevation
-        Color fixedBorder = new Color(220, 50, 50, 200);
+        Color ElevationFill   = new Color(220, 50, 50, 115); // feste rote Farbe für Elevation
+        Color ElevationBorder = new Color(220, 50, 50, 200);
+
+        Color SnowDepthFill = new Color(20, 130, 230, 115);
+        Color SnowDepthBorder = new Color(20, 130, 230, 200);
 
         for (LocalMapServer.PolygonFeature feature : polygons) {
             double[][] polygon = feature.points();
             if (polygon.length < 3) continue;
 
-            Color fill   = useColorGradient ? valueToColor(feature.value()) : fixedFill;
-            Color border = useColorGradient ? fill.darker()                  : fixedBorder;
+            Color fill   = useColorGradient ? SnowDepthFill : ElevationFill;
+            Color border = useColorGradient ? SnowDepthBorder : ElevationBorder;
 
             Path2D.Double path = new Path2D.Double();
             boolean first = true;
